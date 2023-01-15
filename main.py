@@ -1,12 +1,7 @@
 import machine
 from machine import Pin
 import utime
-import ustruct
-
-uart = machine.UART(0,baudrate=31250,tx=Pin(16),rx=Pin(17))
-
-
-led = Pin(25,machine.Pin.OUT)
+from keyboardConfiguration import KeyboardConfiguration
     
 boot_exit_button = Pin(26, Pin.IN, Pin.PULL_UP)
 
@@ -17,10 +12,10 @@ ROW_NUMBER = 8
 # 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 # F E D C B A 9 8 7 6 5  4  3  2  1  0
 
-# col = 1  2  3  4  B C D E
-#       14 13 12 11 4 3 2 1
+# line = 1  2  3  4  B C D E
+#        14 13 12 11 4 3 2 1
 
-# line = 0  5  6 7 8 9 A F
+# col =  0  5  6 7 8 9 A F
 #        15 10 9 8 7 6 5 0
 
 col_list=[15, 10, 9, 8, 7, 6, 5, 0]
@@ -39,9 +34,9 @@ key_map= [
     ["correction","e","d","Esc","c","z","s","x"],
     ["annulation","r","f",",","v","a","q","w"],
     ["down","y","h","'","n","Sommaire","Ctrl","Espace"],
-    ["shift",";","*","Suite","0","u","j","#"],
+    ["shift",";","*","suite","0","u","j","#"],
     ["left","-","7","Retour","8","i","k","9"],
-    ["right",":","4","Envoi","5","o","l","6"],
+    ["right",":","4","envoi","5","o","l","6"],
     ["enter","?","1","Répétition","2","p","m","3"]
 ]
 
@@ -59,7 +54,7 @@ note_map= [
 key_state = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
 key_state_old = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
 
-octaveOffset = 0
+keyboard_config = KeyboardConfiguration()
 
 def KeypadRead(cols,rows):
     global key_state
@@ -79,12 +74,12 @@ def KeypadRead(cols,rows):
                 note=note_map[r][c]
                 if key_state[r][c] == 0:                          
                     if(note != 0):
-                        noteOff(note+octaveOffset*12)
+                        keyboard_config.note_off(note+keyboard_config.octave_offset*12)
                     else:
                         customKeyOff(key)
                 else:                
                     if(note != 0):
-                        noteOn(note+octaveOffset*12)
+                        keyboard_config.note_on(note+keyboard_config.octave_offset*12)
                     else:                        
                         customKeyOn(key)
         
@@ -96,29 +91,32 @@ def KeypadRead(cols,rows):
 
     
 print("--- Ready to get user inputs ---")
-
-def noteOn(note):
-    uart.write(ustruct.pack("bbb",0x93,note,127))
-    led.value(1)
-
-def noteOff(note):
-    uart.write(ustruct.pack("bbb",0x83,note,0))
-    led.value(0)
     
 def customKeyOn(key):
     global octaveOffset
     print("You pressed: "+key)
     if key == "right":
-        octaveOffset += 1
-        if octaveOffset > -3 + 9: #main key is 3 so -3 then limit key +9
-            octaveOffset = -3 + 9
-            print("capping octave offset to key +9")
+        keyboard_config.incr_octave_offset()
     elif key == "left":
-        octaveOffset -= 1
-        if octaveOffset < -1 -3: #main key is 3 so -3 then limit key -1
-            octaveOffset = -1 -3
-            print("capping octave offset to key -1")
-    
+        keyboard_config.decr_octave_offset()
+    if key == "up":
+        keyboard_config.incr_mode()
+    elif key == "down":
+        keyboard_config.decr_mode()
+    elif key == "guide":
+        keyboard_config.rec_pressed()
+    elif key == "correction":
+        keyboard_config.stop_pressed()
+    elif key == "suite":
+        keyboard_config.pauseplay_pressed()
+    elif key == "envoi":
+        keyboard_config.load_seq_pressed()
+    elif key == "enter":
+        keyboard_config.blank_tile_pressed()
+    elif key == "0":
+        keyboard_config.rate = 120
+        keyboard_config.upadate_timer_frequency()
+        
 def customKeyOff(key):
     print("You released: "+key)  
 
