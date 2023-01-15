@@ -5,6 +5,11 @@ import ustruct
 
 uart = machine.UART(0,baudrate=31250,tx=Pin(16),rx=Pin(17))
 
+
+led = Pin(25,machine.Pin.OUT)
+    
+boot_exit_button = Pin(26, Pin.IN, Pin.PULL_UP)
+
 COL_NUMBER = 8
 ROW_NUMBER = 8
 
@@ -18,8 +23,8 @@ ROW_NUMBER = 8
 # line = 0  5  6 7 8 9 A F
 #        15 10 9 8 7 6 5 0
 
-col_list=[14, 13, 12, 11, 4, 3, 2, 1]
-row_list=[15, 10, 9, 8, 7, 6, 5, 0]
+col_list=[15, 10, 9, 8, 7, 6, 5, 0]
+row_list=[14, 13, 12, 11, 4, 3, 2, 1]
 
 for x in range(0,ROW_NUMBER):
     row_list[x]=Pin(row_list[x], Pin.OUT)
@@ -29,23 +34,27 @@ for x in range(0,ROW_NUMBER):
 for x in range(0,COL_NUMBER):
     col_list[x] = Pin(col_list[x], Pin.IN, Pin.PULL_UP)
 
-key_map=[["up","correction","annulation","down","shift","left","right","enter"],\
-        ["t","e","r","y",";","-",":","?"],\
-        ["g","d","f","h","*","7","4","1"],\
-        [".","Esc",",","'","Suite","Retour","Envoi","Répétition"],\
-        ["b","c","v","n","0","8","5","2"],\
-        ["guide","z","a","Sommaire","u","i","o","p"],\
-        ["Fnct","s","q","Ctrl","j","k","l","m"],\
-        ["Connexion Fin","x","w","Espace","#","9","6","3"]]
+key_map= [
+    ["up","t","g",".","b","guide","Fnct","Connexion Fin"],
+    ["correction","e","d","Esc","c","z","s","x"],
+    ["annulation","r","f",",","v","a","q","w"],
+    ["down","y","h","'","n","Sommaire","Ctrl","Espace"],
+    ["shift",";","*","Suite","0","u","j","#"],
+    ["left","-","7","Retour","8","i","k","9"],
+    ["right",":","4","Envoi","5","o","l","6"],
+    ["enter","?","1","Répétition","2","p","m","3"]
+]
 
-note_map=[[0,0,0,0,54,0,0,0],\
-        [65,59,62,68,66,69,72,75],\
-        [67, 61, 64, 70,0,0,0,0],\
-        [60,54,57,63,0,0,0,0],\
-        [69, 63, 66, 72,0,0,0,0],\
-        [0,56, 53,0,71, 74, 77, 80],\
-        [0,58,55,52,73,76,79,82],\
-        [0,60, 57,0,0,0,0,0]]
+note_map= [
+    [0 ,65,67,60,69,0 ,0 ,0 ],
+    [0 ,59,61,54,63,56,58,60],
+    [0 ,62,64,57,66,53,55,57],
+    [0 ,68,70,63,72,0 ,52,0 ],
+    [54,66,0 ,0 ,0 ,71,73,0 ],
+    [0 ,69,0 ,0 ,0 ,74,76,0 ],
+    [0 ,72,0 ,0 ,0 ,77,79,0 ],
+    [0 ,75,0 ,0 ,0 ,80,82,0 ]
+]
 
 key_state = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
 key_state_old = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
@@ -60,6 +69,7 @@ def KeypadRead(cols,rows):
         
     for r in range(0, ROW_NUMBER):
         rows[r].value(0)
+        utime.sleep(0.01)
         for c in range(0,COL_NUMBER):
             if cols[c].value() == 0:
                 key_state[r][c] = 1
@@ -83,15 +93,17 @@ def KeypadRead(cols,rows):
     for x in range(0, COL_NUMBER):
         for y in range(0, ROW_NUMBER):
             key_state_old[x][y] = key_state[x][y]
-    
+
     
 print("--- Ready to get user inputs ---")
 
 def noteOn(note):
     uart.write(ustruct.pack("bbb",0x93,note,127))
+    led.value(1)
 
 def noteOff(note):
     uart.write(ustruct.pack("bbb",0x83,note,0))
+    led.value(0)
     
 def customKeyOn(key):
     global octaveOffset
@@ -110,8 +122,8 @@ def customKeyOn(key):
 def customKeyOff(key):
     print("You released: "+key)  
 
-while True:
-    key=KeypadRead(col_list, row_list)
-    #if key != None:
-   #   print("You pressed: "+key)
-    #  utime.sleep(0.3)
+if boot_exit_button.value() == 1:
+    while True:
+        key=KeypadRead(col_list, row_list)
+else:
+    print("Exit button pressed at boot, quit program")
