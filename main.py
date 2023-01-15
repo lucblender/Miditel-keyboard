@@ -4,6 +4,7 @@ import utime
 from keyboardConfiguration import KeyboardConfiguration
     
 boot_exit_button = Pin(26, Pin.IN, Pin.PULL_UP)
+rate_potentiometer = machine.ADC(28)
 
 COL_NUMBER = 8
 ROW_NUMBER = 8
@@ -33,7 +34,7 @@ key_map= [
     ["up","t","g",".","b","guide","Fnct","Connexion Fin"],
     ["correction","e","d","Esc","c","z","s","x"],
     ["annulation","r","f",",","v","a","q","w"],
-    ["down","y","h","'","n","Sommaire","Ctrl","Espace"],
+    ["down","y","h","'","n","sommaire","Ctrl","Espace"],
     ["shift",";","*","suite","0","u","j","#"],
     ["left","-","7","Retour","8","i","k","9"],
     ["right",":","4","envoi","5","o","l","6"],
@@ -113,9 +114,14 @@ def customKeyOn(key):
         keyboard_config.load_seq_pressed()
     elif key == "enter":
         keyboard_config.blank_tile_pressed()
-    elif key == "0":
-        keyboard_config.rate = 120
-        keyboard_config.upadate_timer_frequency()
+    elif key == "sommaire":
+        keyboard_config.clear_seq_pressed()
+    elif key == "#":
+        keyboard_config.sharp_pressed()
+    elif key == "*":
+        keyboard_config.star_pressed()
+    elif key.isdigit():
+        keyboard_config.digit_pressed(int(key))
         
 def customKeyOff(key):
     print("You released: "+key)  
@@ -123,5 +129,6 @@ def customKeyOff(key):
 if boot_exit_button.value() == 1:
     while True:
         key=KeypadRead(col_list, row_list)
+        keyboard_config.set_rate_potentiometer(rate_potentiometer.read_u16())
 else:
     print("Exit button pressed at boot, quit program")
