@@ -96,10 +96,15 @@ class KeyboardConfiguration:
         self.last_arp_key_played = -1
         self.arp_number_note_pressed = 0
         
+        # gate lenght attributes
+        self.changing_gate_length = False
+        
         self.uart = machine.UART(0,baudrate=31250,tx=Pin(16),rx=Pin(17))        
         self.led = Pin(25,machine.Pin.OUT)
         
         self.play_note_timer = Timer(-1)
+        self.play_note_timer_tenth_counter = 0
+        self.player_note_timer_gate_pertenth = 5
         
         self.display()    
         
@@ -114,6 +119,7 @@ class KeyboardConfiguration:
         print("Sequencer number :", self.seq_number)
         print("Loading sequencer number :", self.loading_seq_number)
         print("Hold : ", self.hold)
+        print("Gate  : ", self.player_note_timer_gate_pertenth*10,"%")
         print("*-"*20)
 
     def timer_callback(self, timer):        
@@ -121,30 +127,30 @@ class KeyboardConfiguration:
             pass
         elif self.mode == Mode.SEQUENCER:
             if self.play_mode == PlayMode.PLAYING:
-                next_index = (self.current_seq_index+1)%self.seq_len
-                previous_index = (self.current_seq_index-1)%self.seq_len
-                if self.last_seq_key_played != -1:
-                    self.note_off(self.last_seq_key_played)
-                self.last_seq_key_played = self.seq_notes[self.current_seq_index]
-                self.note_on( self.last_seq_key_played)
-                self.current_seq_index = next_index          
+                if self.play_note_timer_tenth_counter == 0:
+                    self.last_seq_key_played = self.seq_notes[self.current_seq_index]
+                    self.note_on( self.last_seq_key_played)
+                    self.current_seq_index = (self.current_seq_index+1)%self.seq_len      
+                elif self.play_note_timer_tenth_counter == self.player_note_timer_gate_pertenth:
+                    if self.last_seq_key_played != -1:
+                        self.note_off(self.last_seq_key_played)                                       
         elif self.mode == Mode.ARPEGIATOR:
             if self.play_mode == PlayMode.PLAYING:
-                
-                if self.last_arp_key_played != -1:
-                    self.__send_note_off(self.last_arp_key_played)
-                if(len(self.arp_notes) != 0):
-                    if(self.current_arp_index >len(self.arp_notes) -1):
-                        self.current_arp_index = len(self.arp_notes) -1
-                    next_index = (self.current_arp_index+1)%len(self.arp_notes)
-                    previous_index = (self.current_arp_index-1)%len(self.arp_notes)
-                    print(next_index, previous_index)
-                    self.last_arp_key_played = self.arp_notes[self.current_arp_index]
-                    self.__send_note_on(self.last_arp_key_played)
-                    self.current_arp_index = next_index
-                
+                if self.play_note_timer_tenth_counter == 0:    
+                    if(len(self.arp_notes) != 0):
+                        if(self.current_arp_index >len(self.arp_notes) -1):
+                            self.current_arp_index = len(self.arp_notes) -1
+                        self.last_arp_key_played = self.arp_notes[self.current_arp_index]
+                        self.__send_note_on(self.last_arp_key_played)
+                        self.current_arp_index = (self.current_arp_index+1)%len(self.arp_notes)
+                elif self.play_note_timer_tenth_counter == self.player_note_timer_gate_pertenth:                
+                    if self.last_arp_key_played != -1:
+                        self.__send_note_off(self.last_arp_key_played)  
+
+        self.play_note_timer_tenth_counter = (self.play_note_timer_tenth_counter+1)%10
+
     def upadate_timer_frequency(self):
-        self.play_note_timer.init(period=int((60/self.rate)*1000), mode=Timer.PERIODIC, callback=self.timer_callback)
+        self.play_note_timer.init(period=int(((60/self.rate)*1000)/10), mode=Timer.PERIODIC, callback=self.timer_callback)
         
     def incr_octave_offset(self):
         self.octave_offset += 1
@@ -224,7 +230,6 @@ class KeyboardConfiguration:
             self.arp_number_note_pressed += 1
             if self.hold == False:                
                 self.arp_notes.append(note)
-                print(self.arp_notes)
             else:
                 if self.arp_number_note_pressed == 1:
                     self.arp_notes = []
@@ -338,21 +343,15 @@ class KeyboardConfiguration:
         elif self.mode == Mode.ARPEGIATOR:
             pass
         self.display()
-    
-    def clear_seq_pressed(self):
+
+    def gate_length_pressed(self):
         if self.mode == Mode.BASIC:
             pass
-        elif self.mode == Mode.SEQUENCER:
-            self.stop_pressed()
-            self.seq_len = 0
-            self.seq_notes = []
-            self.current_seq_index = 0
-            self.save_sequence_file(self.seq_number)
-        elif self.mode == Mode.ARPEGIATOR:
+        elif self.mode == Mode.SEQUENCER or self.mode == Mode.ARPEGIATOR:
+            self.changing_gate_length = True
             pass
-        
         self.display()
-        
+
     def digit_pressed(self, digit):
         if self.mode == Mode.BASIC:
             pass
@@ -364,7 +363,13 @@ class KeyboardConfiguration:
                 self.display()
         elif self.mode == Mode.ARPEGIATOR:
             pass
-    
+        
+        if self.mode == Mode.SEQUENCER or self.mode == Mode.ARPEGIATOR:
+            if self.changing_gate_length == True:
+                if digit != 0:
+                    self.player_note_timer_gate_pertenth = digit                              
+                self.display()
+                
     def sharp_pressed(self):
         if self.mode == Mode.BASIC:
             pass
@@ -376,7 +381,12 @@ class KeyboardConfiguration:
                 self.display()
         elif self.mode == Mode.ARPEGIATOR:
             pass
-    
+
+        if self.mode == Mode.SEQUENCER or self.mode == Mode.ARPEGIATOR:
+            if self.changing_gate_length == True:
+                self.changing_gate_length = False                          
+                self.display()
+                    
     def star_pressed(self):
         if self.mode == Mode.BASIC:
             pass
@@ -387,14 +397,28 @@ class KeyboardConfiguration:
                 self.display()
         elif self.mode == Mode.ARPEGIATOR:
             pass
+
+        if self.mode == Mode.SEQUENCER or self.mode == Mode.ARPEGIATOR:
+            if self.changing_gate_length == True:
+                self.changing_gate_length = False                          
+                self.display()
         
-    def hold_pressed(self):
+    def clear_seq_hold_pressed(self):
         if self.mode == Mode.BASIC:
             pass
-        elif self.mode == Mode.SEQUENCER:
-            pass
+        elif self.mode == Mode.SEQUENCER:            
+            self.stop_pressed()
+            self.seq_len = 0
+            self.seq_notes = []
+            self.current_seq_index = 0
+            self.save_sequence_file(self.seq_number)
         elif self.mode == Mode.ARPEGIATOR:
             self.hold = not self.hold
+            if self.hold == False:                      
+                self.arp_len = 0 # reset arpegiator
+                self.arp_notes = []
+                self.current_arp_index = 0
+                self.arp_number_note_pressed = 0
             self.display()
         
     def load_sequence_file(self, sequence_number):

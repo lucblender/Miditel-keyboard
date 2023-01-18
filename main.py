@@ -115,13 +115,13 @@ def customKeyOn(key):
     elif key == "enter":
         keyboard_config.blank_tile_pressed()
     elif key == "sommaire":
-        keyboard_config.clear_seq_pressed()
+        keyboard_config.gate_length_pressed()
     elif key == "#":
         keyboard_config.sharp_pressed()
     elif key == "*":
         keyboard_config.star_pressed()
     elif key == "annulation":
-        keyboard_config.hold_pressed()
+        keyboard_config.clear_seq_hold_pressed()
     elif key.isdigit():
         keyboard_config.digit_pressed(int(key))
         
