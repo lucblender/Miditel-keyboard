@@ -120,6 +120,8 @@ def customKeyOn(key):
         keyboard_config.sharp_pressed()
     elif key == "*":
         keyboard_config.star_pressed()
+    elif key == "annulation":
+        keyboard_config.hold_pressed()
     elif key.isdigit():
         keyboard_config.digit_pressed(int(key))
         
