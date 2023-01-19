@@ -26,11 +26,11 @@ PlayMode = enum(PLAYING = 0,
 
 def modeToStr(local_mode):
     if local_mode == Mode.BASIC:
-        return "basic"
+        return "Basic"
     elif local_mode == Mode.ARPEGIATOR:
-        return "arpegiator"
+        return "Arpeg."
     elif local_mode == Mode.SEQUENCER:
-        return "sequencer"
+        return "Sequ."
     
 def timeDivToStr(local_time_div):
     if local_time_div == TimeDiv.ONE_FOURTH:
@@ -74,7 +74,7 @@ class KeyboardConfiguration:
     def __init__(self):
         self.mode = Mode.BASIC
         self.time_div = TimeDiv.ONE_FOURTH
-        self.rate = 60
+        self.rate = 999
         self.octave_offset = 0
         self.play_mode = PlayMode.STOPPED
         
@@ -105,22 +105,15 @@ class KeyboardConfiguration:
         self.play_note_timer = Timer(-1)
         self.play_note_timer_tenth_counter = 0
         self.player_note_timer_gate_pertenth = 5
-        
-        self.display()    
+        self.oled_display = None
+        self.display()
+
+    def set_display(self, oled_display):
+        self.oled_display = oled_display
         
     def display(self):
-        print("*-"*20)
-        print("Mode :",modeToStr(self.mode))
-        print("TimeDiv :",timeDivToStr(self.time_div))
-        print("Rate :",self.rate,"bpm")
-        print("First Key : C"+str(self.octave_offset+3))
-        print("Play/pause :"+playModeToStr(self.play_mode))
-        print("Sequencer len :", self.seq_len)
-        print("Sequencer number :", self.seq_number)
-        print("Loading sequencer number :", self.loading_seq_number)
-        print("Hold : ", self.hold)
-        print("Gate  : ", self.player_note_timer_gate_pertenth*10,"%")
-        print("*-"*20)
+        if self.oled_display != None:
+            self.oled_display.display()
 
     def timer_callback(self, timer):        
         if self.mode == Mode.BASIC:

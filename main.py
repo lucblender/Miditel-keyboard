@@ -1,7 +1,9 @@
 import machine
 from machine import Pin
 import utime
+import time
 from keyboardConfiguration import KeyboardConfiguration
+from OLED_SPI import OLED_1inch3
     
 boot_exit_button = Pin(26, Pin.IN, Pin.PULL_UP)
 rate_potentiometer = machine.ADC(28)
@@ -19,8 +21,11 @@ ROW_NUMBER = 8
 # col =  0  5  6 7 8 9 A F
 #        15 10 9 8 7 6 5 0
 
-col_list=[15, 10, 9, 8, 7, 6, 5, 0]
-row_list=[14, 13, 12, 11, 4, 3, 2, 1]
+
+# 8 9  10 11 12
+#22 21 20 19 18 
+col_list=[15, 20, 21, 22, 7, 6, 5, 0]
+row_list=[14, 13, 18, 19, 4, 3, 2, 1]
 
 for x in range(0,ROW_NUMBER):
     row_list[x]=Pin(row_list[x], Pin.OUT)
@@ -56,6 +61,9 @@ key_state = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,
 key_state_old = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
 
 keyboard_config = KeyboardConfiguration()
+OLED = OLED_1inch3(keyboard_config)
+keyboard_config.set_display(OLED)
+
 
 def KeypadRead(cols,rows):
     global key_state
@@ -129,6 +137,10 @@ def customKeyOff(key):
     print("You released: "+key)  
 
 if boot_exit_button.value() == 1:
+    
+    OLED.display_helixbyte()
+    time.sleep(0.5)
+    keyboard_config.display()
     while True:
         key=KeypadRead(col_list, row_list)
         keyboard_config.set_rate_potentiometer(rate_potentiometer.read_u16())
