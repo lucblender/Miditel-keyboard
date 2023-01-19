@@ -67,6 +67,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
             f.readline() # Magic number
             f.readline() # Creator comment
             f.readline() # Dimensions
+            data = bytearray(f.read())
         self.fbuf_rec = framebuf.FrameBuffer(data, 9, 9, framebuf.MONO_HLSB)
 
         with open('stop.pbm', 'rb') as f:
@@ -155,6 +156,12 @@ class OLED_1inch3(framebuf.FrameBuffer):
 
         self.blit(lxb_fbuf, 32, 0)
         self.show()
+        
+    def display_programming_mode(self):     
+        self.fill(self.black)#smallest
+        self.font_writer_arial10.text("Programming mode",0,0)
+        self.show()
+        time.sleep(1)
         
     def display_demo(self):     
         self.fill(self.black)#smallest

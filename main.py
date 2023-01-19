@@ -2,6 +2,7 @@ import machine
 from machine import Pin
 import utime
 import time
+
 from keyboardConfiguration import KeyboardConfiguration
 from OLED_SPI import OLED_1inch3
     
@@ -145,4 +146,7 @@ if boot_exit_button.value() == 1:
         key=KeypadRead(col_list, row_list)
         keyboard_config.set_rate_potentiometer(rate_potentiometer.read_u16())
 else:
+    OLED.display_helixbyte()
+    time.sleep(0.5)
+    OLED.display_programming_mode()
     print("Exit button pressed at boot, quit program")
