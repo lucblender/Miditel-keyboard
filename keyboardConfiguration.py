@@ -24,6 +24,16 @@ PlayMode = enum(PLAYING = 0,
                 RECORDING = 2,
                 STOPPED = 3)
 
+ArpMode = enum(UP = 0,
+               DWN = 1,
+               INC = 2,
+               EXC = 3,
+               RAND = 4,
+               ORDER = 5,
+               UPX2 = 6,
+               DWNX2 = 7,
+               )
+
 def modeToStr(local_mode):
     if local_mode == Mode.BASIC:
         return "Basic"
@@ -50,6 +60,25 @@ def timeDivToStr(local_time_div):
     elif local_time_div == TimeDiv.ONE_THIRTYSECOND_T:
         return "1/32T"
     
+def arpModeToStr(local_arp_mode):
+    if local_arp_mode == ArpMode.UP:
+        return "Up"
+    elif local_arp_mode == ArpMode.DWN:
+        return "Down"
+    elif local_arp_mode == ArpMode.INC:
+        return "Inclusive"
+    elif local_arp_mode == ArpMode.EXC:
+        return "Exclusive"
+    elif local_arp_mode == ArpMode.RAND:
+        return "Random"
+    elif local_arp_mode == ArpMode.ORDER:
+        return "Press Order"
+    elif local_arp_mode == ArpMode.UPX2:
+        return "Up x2"
+    elif local_arp_mode == ArpMode.DWNX2:
+        return "Down x2"
+
+
 def playModeToStr(local_play_mode):
     if local_play_mode == PlayMode.PLAYING:
         return "⏵"
@@ -93,6 +122,7 @@ class KeyboardConfiguration:
         self.last_seq_key_played = -1
         
         # arpegiator linked attributes
+        self.arp_mode = ArpMode.ORDER
         self.hold = False
         self.arp_len = 0
         self.arp_notes = []
@@ -197,6 +227,25 @@ class KeyboardConfiguration:
         
         self.display()
         
+    def incr_arp_mode(self):
+        if self.mode == Mode.BASIC:
+            pass
+        elif self.mode == Mode.SEQUENCER:
+            pass
+        elif self.mode == Mode.ARPEGIATOR:
+            self.arp_mode = (self.arp_mode+1)%8
+            self.display()
+    
+    def decr_arp_mode(self):
+        if self.mode == Mode.BASIC:
+            pass
+        elif self.mode == Mode.SEQUENCER:
+            pass
+        elif self.mode == Mode.ARPEGIATOR:
+            self.arp_mode = (self.arp_mode-1)%8
+            self.display()
+
+    
     def set_rate_potentiometer(self, pot_value):
         old_rate = self.rate
         new_rate = int((pot_value/65536) * (MAX_BPM-MIN_BPM) + MIN_BPM)

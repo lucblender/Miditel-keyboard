@@ -42,9 +42,9 @@ key_map= [
     ["annulation","r","f",",","v","a","q","w"],
     ["down","y","h","'","n","sommaire","Ctrl","Espace"],
     ["shift",";","*","suite","0","u","j","#"],
-    ["left","-","7","Retour","8","i","k","9"],
+    ["left","-","7","retour","8","i","k","9"],
     ["right",":","4","envoi","5","o","l","6"],
-    ["enter","?","1","Répétition","2","p","m","3"]
+    ["enter","?","1","répétition","2","p","m","3"]
 ]
 
 note_map= [
@@ -131,6 +131,10 @@ def customKeyOn(key):
         keyboard_config.star_pressed()
     elif key == "annulation":
         keyboard_config.clear_seq_hold_pressed()
+    elif key == "retour":
+        keyboard_config.decr_arp_mode()
+    elif key == "répétition":
+        keyboard_config.incr_arp_mode()
     elif key.isdigit():
         keyboard_config.digit_pressed(int(key))
         

@@ -17,6 +17,14 @@ MOSI = 11
 SCK = 10
 CS = 9
 
+def pict_to_fbuff(path,x,y):
+    with open(path, 'rb') as f:
+        f.readline() # Magic number
+        f.readline() # Creator comment
+        f.readline() # Dimensions
+        data = bytearray(f.read())
+    return framebuf.FrameBuffer(data, x, y, framebuf.MONO_HLSB)
+
 
 class OLED_1inch3(framebuf.FrameBuffer):
     def __init__(self, keyboard_config):
@@ -48,37 +56,38 @@ class OLED_1inch3(framebuf.FrameBuffer):
         self.font_writer_font10 = writer.Writer(self, font10)
         self.font_writer_font6 = writer.Writer(self, font6)
         self.font_writer_freesans20 = writer.Writer(self, freesans20)
-
-        with open('play.pbm', 'rb') as f:
-            f.readline() # Magic number
-            f.readline() # Creator comment
-            f.readline() # Dimensions
-            data = bytearray(f.read())
-        self.fbuf_play = framebuf.FrameBuffer(data, 9, 9, framebuf.MONO_HLSB)
         
-        with open('pause.pbm', 'rb') as f:
-            f.readline() # Magic number
-            f.readline() # Creator comment
-            f.readline() # Dimensions
-            data = bytearray(f.read())
-        self.fbuf_pause = framebuf.FrameBuffer(data, 9, 9, framebuf.MONO_HLSB)
-
-        with open('rec.pbm', 'rb') as f:
-            f.readline() # Magic number
-            f.readline() # Creator comment
-            f.readline() # Dimensions
-            data = bytearray(f.read())
-        self.fbuf_rec = framebuf.FrameBuffer(data, 9, 9, framebuf.MONO_HLSB)
-
-        with open('stop.pbm', 'rb') as f:
-            f.readline() # Magic number
-            f.readline() # Creator comment
-            f.readline() # Dimensions
-            data = bytearray(f.read())
-        self.fbuf_stop = framebuf.FrameBuffer(data, 9, 9, framebuf.MONO_HLSB)
+        self.fbuf_play = pict_to_fbuff('play.pbm', 9, 9)   
+        self.fbuf_pause = pict_to_fbuff('pause.pbm', 9, 9)
+        self.fbuf_rec = pict_to_fbuff('rec.pbm', 9, 9)
+        self.fbuf_stop = pict_to_fbuff('stop.pbm', 9, 9)
         
         self.fbufs_play_mode = [self.fbuf_play, self.fbuf_pause, self.fbuf_rec, self.fbuf_stop]
         
+        
+        self.fbuf_arp_up = pict_to_fbuff('arp_mode/up.pbm', 16, 16)
+        self.fbuf_arp_dwn = pict_to_fbuff('arp_mode/dwn.pbm', 16, 16)
+        self.fbuf_arp_inc = pict_to_fbuff('arp_mode/inc.pbm', 16, 16)
+        self.fbuf_arp_exc = pict_to_fbuff('arp_mode/exc.pbm', 16, 16)
+        self.fbuf_arp_rand = pict_to_fbuff('arp_mode/rand.pbm', 16, 16)
+        self.fbuf_arp_order = pict_to_fbuff('arp_mode/order.pbm', 16, 16)
+        self.fbuf_arp_upx2 = pict_to_fbuff('arp_mode/upx2.pbm', 16, 16)
+        self.fbuf_arp_dwnx2 = pict_to_fbuff('arp_mode/dwnx2.pbm', 16, 16)
+        
+        self.fbufs_arp_modes = [self.fbuf_arp_up, self.fbuf_arp_dwn, self.fbuf_arp_inc, self.fbuf_arp_exc, self.fbuf_arp_rand, self.fbuf_arp_order, self.fbuf_arp_upx2, self.fbuf_arp_dwnx2]
+        
+                
+        self.fbuf_inv_arp_up = pict_to_fbuff('arp_mode/inv_up.pbm', 16, 16)
+        self.fbuf_inv_arp_dwn = pict_to_fbuff('arp_mode/inv_dwn.pbm', 16, 16)
+        self.fbuf_inv_arp_inc = pict_to_fbuff('arp_mode/inv_inc.pbm', 16, 16)
+        self.fbuf_inv_arp_exc = pict_to_fbuff('arp_mode/inv_exc.pbm', 16, 16)
+        self.fbuf_inv_arp_rand = pict_to_fbuff('arp_mode/inv_rand.pbm', 16, 16)
+        self.fbuf_inv_arp_order = pict_to_fbuff('arp_mode/inv_order.pbm', 16, 16)
+        self.fbuf_inv_arp_upx2 = pict_to_fbuff('arp_mode/inv_upx2.pbm', 16, 16)
+        self.fbuf_inv_arp_dwnx2 = pict_to_fbuff('arp_mode/inv_dwnx2.pbm', 16, 16)
+        
+        self.fbufs_inv_arp_modes = [self.fbuf_inv_arp_up, self.fbuf_inv_arp_dwn, self.fbuf_inv_arp_inc, self.fbuf_inv_arp_exc, self.fbuf_inv_arp_rand, self.fbuf_inv_arp_order, self.fbuf_inv_arp_upx2, self.fbuf_inv_arp_dwnx2]
+    
     def write_cmd(self, cmd):
         self.cs(1)
         self.dc(0)
@@ -224,7 +233,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
                 self.line(start_line+2*gate_lenght,13,start_line+2*gate_lenght+2*(gate_off),13,self.white)
             
             # bottom block key and Tdiv
-            self.fill_rect(0,50,127,63,self.white)
+            self.fill_rect(0,50,128,64,self.white)
             key_str = "Key:C"+str(self.keyboard_config.octave_offset+4)
             self.font_writer_arial10.text(key_str,2, 53, True)
             time_div_str = "Div:"+timeDivToStr(self.keyboard_config.time_div)
@@ -267,6 +276,15 @@ class OLED_1inch3(framebuf.FrameBuffer):
             self.font_writer_font6.text("{:03d} steps".format(self.keyboard_config.seq_len),seq_n_x+2, seq_n_y+16)
             
         elif self.keyboard_config.mode == Mode.ARPEGIATOR:
+            
+            for i in range(0,8):#TODO
+                if self.keyboard_config.arp_mode == i:
+                    self.fill_rect(0+i*16, 34,16,16,self.white)
+                    self.blit(self.fbufs_inv_arp_modes[i],0+i*16, 34)
+                else:    
+                    self.blit(self.fbufs_arp_modes[i],0+i*16, 34)
+                    self.rect(0+i*16, 34,16,16,self.white)
+            
             if self.keyboard_config.hold:
                 time_div_str = "H"
                 self.rect(114,51,12,12,self.black)
@@ -292,6 +310,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
         print("Hold : ", self.keyboard_config.hold)#ok
         print("Gate  : ", self.keyboard_config.player_note_timer_gate_pertenth*10,"%")#ok
         print("Midi channel : ",self.keyboard_config.midi_channel)
+        print("Arp Mode : ", arpModeToStr(self.keyboard_config.arp_mode))
         print("*-"*20)
           
 if __name__=='__main__':
