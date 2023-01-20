@@ -28,9 +28,9 @@ def modeToStr(local_mode):
     if local_mode == Mode.BASIC:
         return "Basic"
     elif local_mode == Mode.ARPEGIATOR:
-        return "Arpeg."
+        return "Arpeg"
     elif local_mode == Mode.SEQUENCER:
-        return "Sequ."
+        return "Sequ"
     
 def timeDivToStr(local_time_div):
     if local_time_div == TimeDiv.ONE_FOURTH:
@@ -74,9 +74,13 @@ class KeyboardConfiguration:
     def __init__(self):
         self.mode = Mode.BASIC
         self.time_div = TimeDiv.ONE_FOURTH
-        self.rate = 999
+        self.rate = 60
         self.octave_offset = 0
         self.play_mode = PlayMode.STOPPED
+        
+        self.midi_change_channel = False
+        self.midi_change_channel_channel = 0        
+        self.midi_channel = 0
         
         # sequencer linked attributes
         self.seq_len = 0
@@ -147,15 +151,15 @@ class KeyboardConfiguration:
         
     def incr_octave_offset(self):
         self.octave_offset += 1
-        if self.octave_offset > -3 + 9: #main key is 3 so -3 then limit key +9
-            self.octave_offset = -3 + 9
+        if self.octave_offset > -4 + 9: #main key is 4 so -4 then limit key +9
+            self.octave_offset = -4 + 9
             print("capping octave offset to key +9")
         self.display()
         
     def decr_octave_offset(self):
         self.octave_offset -= 1
-        if self.octave_offset < -1 -3: #main key is 3 so -3 then limit key -1
-            self.octave_offset = -1 -3
+        if self.octave_offset < -1 -4: #main key is 4 so -4 then limit key -1
+            self.octave_offset = -1 -4
             print("capping octave offset to key -1")
         self.display()
         
@@ -243,16 +247,16 @@ class KeyboardConfiguration:
 
     def __send_note_on(self, note):
         if note != -1:
-            self.uart.write(ustruct.pack("bbb",0x93,note,127))
+            self.uart.write(ustruct.pack("bbb",0x90+self.midi_channel,note,127))
             self.led.value(1)
 
     def __send_note_off(self, note):
         if note != -1:
-            self.uart.write(ustruct.pack("bbb",0x83,note,0))
+            self.uart.write(ustruct.pack("bbb",0x80+self.midi_channel,note,0))
             self.led.value(0)
         
     def __send__all_note_off(self):
-        self.uart.write(ustruct.pack("bbb",0xb3,123,0))
+        self.uart.write(ustruct.pack("bbb",0xb+self.midi_channel,123,0))
         self.led.value(0)
         
     def blank_tile_pressed(self):
@@ -337,22 +341,26 @@ class KeyboardConfiguration:
             pass
         self.display()
 
-    def gate_length_pressed(self):
+    def midi_channel_gate_length_pressed(self):
         if self.mode == Mode.BASIC:
-            pass
+            self.midi_change_channel = not self.midi_change_channel
+            self.midi_change_channel_channel = 0     
         elif self.mode == Mode.SEQUENCER or self.mode == Mode.ARPEGIATOR:
-            self.changing_gate_length = True
-            pass
+            self.changing_gate_length = not self.changing_gate_length 
         self.display()
 
     def digit_pressed(self, digit):
         if self.mode == Mode.BASIC:
-            pass
+            if self.midi_change_channel == True:
+                self.midi_change_channel_channel = (self.midi_change_channel_channel*10)+digit 
+                if self.midi_change_channel_channel >16:
+                    self.midi_change_channel_channel = 16        
+                self.display()
         elif self.mode == Mode.SEQUENCER:
             if self.loading_seq == True:
                 self.loading_seq_number = (self.loading_seq_number*10)+digit
-                if self.loading_seq_number >63:
-                    self.loading_seq_number = 63                    
+                if self.loading_seq_number >99:
+                    self.loading_seq_number = 99                    
                 self.display()
         elif self.mode == Mode.ARPEGIATOR:
             pass
@@ -365,7 +373,11 @@ class KeyboardConfiguration:
                 
     def sharp_pressed(self):
         if self.mode == Mode.BASIC:
-            pass
+            if self.midi_change_channel == True:
+                self.midi_change_channel = False
+                if self.midi_change_channel_channel != 0: 
+                    self.midi_channel = self.midi_change_channel_channel
+                self.display()
         elif self.mode == Mode.SEQUENCER:
             if self.loading_seq == True: # confirm loading
                 self.loading_seq = False
@@ -382,7 +394,10 @@ class KeyboardConfiguration:
                     
     def star_pressed(self):
         if self.mode == Mode.BASIC:
-            pass
+            if self.midi_change_channel == True:
+                self.midi_change_channel = False
+                self.midi_change_channel_channel = 0        
+                self.display()
         elif self.mode == Mode.SEQUENCER:
             if self.loading_seq == True: # cancel loading
                 self.loading_seq = False
@@ -405,6 +420,7 @@ class KeyboardConfiguration:
             self.seq_notes = []
             self.current_seq_index = 0
             self.save_sequence_file(self.seq_number)
+            self.display()
         elif self.mode == Mode.ARPEGIATOR:
             self.hold = not self.hold
             if self.hold == False:                      

@@ -190,38 +190,118 @@ class OLED_1inch3(framebuf.FrameBuffer):
         
         self.font_writer_font10.text(modeToStr(self.keyboard_config.mode),17,1)
         bpm_txt = str(self.keyboard_config.rate)+"bpm"
-        self.font_writer_arial10.text(bpm_txt,(128-(7*len(bpm_txt))),2)
+        self.font_writer_arial10.text(bpm_txt,(128-(7*len(bpm_txt))),3)
         
         self.rect(0,0,15,15,self.white)
         correct_play_mode_buff = self.fbufs_play_mode[self.keyboard_config.play_mode]
         self.blit(correct_play_mode_buff, 3, 3)
         
         print("Play/pause :"+playModeToStr(self.keyboard_config.play_mode))
-        
-        
+
         self.line(0,15,128,15,self.white)
-        self.show()        
+        
+        if self.keyboard_config.mode == Mode.SEQUENCER or self.keyboard_config.mode == Mode.ARPEGIATOR:
+              #gate lenght picto
+            start_line = 62
+            gate_up = 3
+            gate_low = 13            
+            gate_lenght = self.keyboard_config.player_note_timer_gate_pertenth
+            gate_off = 10 - gate_lenght
+            
+            if self.keyboard_config.changing_gate_length:
+                self.fill_rect(start_line-1,0,23,15,self.white)
+                self.line(start_line,gate_low,start_line+2,gate_low,self.black)
+                self.line(start_line+2,gate_low,start_line+2,gate_up,self.black)
+                self.line(start_line+2,gate_up,start_line+2*gate_lenght,gate_up,self.black)
+                self.line(start_line+2*gate_lenght,gate_up,start_line+2*gate_lenght,gate_low,self.black)
+                self.line(start_line+2*gate_lenght,13,start_line+2*gate_lenght+2*(gate_off),13,self.black)
+
+            else:
+                self.line(start_line,gate_low,start_line+2,gate_low,self.white)
+                self.line(start_line+2,gate_low,start_line+2,gate_up,self.white)
+                self.line(start_line+2,gate_up,start_line+2*gate_lenght,gate_up,self.white)
+                self.line(start_line+2*gate_lenght,gate_up,start_line+2*gate_lenght,gate_low,self.white)
+                self.line(start_line+2*gate_lenght,13,start_line+2*gate_lenght+2*(gate_off),13,self.white)
+            
+            # bottom block key and Tdiv
+            self.fill_rect(0,50,127,63,self.white)
+            key_str = "Key:C"+str(self.keyboard_config.octave_offset+4)
+            self.font_writer_arial10.text(key_str,2, 53, True)
+            time_div_str = "Div:"+timeDivToStr(self.keyboard_config.time_div)
+            self.font_writer_arial10.text(time_div_str,55, 53,True)
+        
+                
+        if self.keyboard_config.mode == Mode.BASIC:
+            key_str = "Key : C"+str(self.keyboard_config.octave_offset+4)
+            self.font_writer_font6.text(key_str,5, 22)
+            time_div_str = "TimeDiv : "+timeDivToStr(self.keyboard_config.time_div)
+            self.font_writer_font6.text(time_div_str,5, 44)
+            
+            midi_ch_x = 96
+            midi_ch_y = 51
+            if self.keyboard_config.midi_change_channel == True:
+                self.rect(midi_ch_x,midi_ch_y,31,12,self.white)
+                midi_channel_txt = 'Ch {:02d}'.format(self.keyboard_config.midi_change_channel_channel).replace("0","_")
+                self.font_writer_arial10.text(midi_channel_txt,midi_ch_x+2,midi_ch_y+2)
+                self.rect(midi_ch_x,midi_ch_y,31,12,self.white)
+            else:
+                self.fill_rect(midi_ch_x,midi_ch_y,31,12,self.white)
+                midi_channel_txt = 'Ch {:02d}'.format(self.keyboard_config.midi_channel)
+                self.font_writer_arial10.text(midi_channel_txt,midi_ch_x+2,midi_ch_y+2,True)
+
+        
+        
+        elif self.keyboard_config.mode == Mode.SEQUENCER:
+            seq_n_x = 3
+            seq_n_y = 19
+            if self.keyboard_config.loading_seq:
+                seq_number_str = 'Seq n  {:02d}'.format(self.keyboard_config.loading_seq_number).replace("0","_")
+                self.fill_rect(seq_n_x,seq_n_y,66,16,self.white)
+                self.font_writer_font6.text(seq_number_str,seq_n_x+2,seq_n_y+2,True)
+                self.font_writer_arial10.text("o",seq_n_x+38,seq_n_y,True)
+            else:
+                seq_number_str = 'Seq n  {:02d}'.format(self.keyboard_config.seq_number)
+                self.font_writer_font6.text(seq_number_str,seq_n_x+2,seq_n_y+2)
+                self.font_writer_arial10.text("o",seq_n_x+38,seq_n_y)
+                
+            self.font_writer_font6.text("{:03d} steps".format(self.keyboard_config.seq_len),seq_n_x+2, seq_n_y+16)
+            
+        elif self.keyboard_config.mode == Mode.ARPEGIATOR:
+            if self.keyboard_config.hold:
+                time_div_str = "H"
+                self.rect(114,51,12,12,self.black)
+                self.text(time_div_str,116,53,self.black)
+            else:   
+                time_div_str = "H"
+                self.fill_rect(114,51,12,12,self.black)
+                self.text(time_div_str,116,53,self.white)     
+        
+        self.show()    
+            
+            
         
         print("*-"*20)
-        print("Mode :",modeToStr(self.keyboard_config.mode))
-        print("TimeDiv :",timeDivToStr(self.keyboard_config.time_div))
-        print("Rate :",self.keyboard_config.rate,"bpm")
-        print("First Key : C"+str(self.keyboard_config.octave_offset+3))
-        print("Play/pause :"+playModeToStr(self.keyboard_config.play_mode))
+        print("Mode :",modeToStr(self.keyboard_config.mode))#ok
+        print("TimeDiv :",timeDivToStr(self.keyboard_config.time_div))#ok
+        print("Rate :",self.keyboard_config.rate,"bpm")#ok
+        print("First Key : C"+str(self.keyboard_config.octave_offset+4))#ok
+        print("Play/pause :"+playModeToStr(self.keyboard_config.play_mode))#ok
         print("Sequencer len :", self.keyboard_config.seq_len)
         print("Sequencer number :", self.keyboard_config.seq_number)
         print("Loading sequencer number :", self.keyboard_config.loading_seq_number)
-        print("Hold : ", self.keyboard_config.hold)
-        print("Gate  : ", self.keyboard_config.player_note_timer_gate_pertenth*10,"%")
+        print("Hold : ", self.keyboard_config.hold)#ok
+        print("Gate  : ", self.keyboard_config.player_note_timer_gate_pertenth*10,"%")#ok
+        print("Midi channel : ",self.keyboard_config.midi_channel)
         print("*-"*20)
           
 if __name__=='__main__':
     keyboard_config = KeyboardConfiguration()
-    OLED = OLED_1inch3(keyboard_config)
-    keyboard_config.set_display(OLED)
+    OLED_tst = OLED_1inch3(keyboard_config)
+    keyboard_config.set_display(OLED_tst)
     
-    OLED.display_helixbyte()
+    OLED_tst.display_helixbyte()
     time.sleep(0.5)
+    OLED_tst.display()
 
 
     """

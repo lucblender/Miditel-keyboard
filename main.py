@@ -124,7 +124,7 @@ def customKeyOn(key):
     elif key == "enter":
         keyboard_config.blank_tile_pressed()
     elif key == "sommaire":
-        keyboard_config.gate_length_pressed()
+        keyboard_config.midi_channel_gate_length_pressed()
     elif key == "#":
         keyboard_config.sharp_pressed()
     elif key == "*":
