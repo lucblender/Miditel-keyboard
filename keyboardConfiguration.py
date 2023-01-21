@@ -1,6 +1,7 @@
 import machine
 from machine import Pin, Timer
 import ustruct
+from random import randrange
 
 MIN_BPM = 30
 MAX_BPM = 240
@@ -10,12 +11,12 @@ def enum(**enums: int):
 
 Mode = enum(BASIC=0, ARPEGIATOR=1, SEQUENCER=2)
 TimeDiv = enum(ONE_FOURTH=0,
-            ONE_EIGHTH=1,
-            ONE_SIXTEENTH=2,
-            ONE_THIRTYSECOND=3,
-            ONE_FOURTH_T=4,
-            ONE_EIGHTH_T=5,
-            ONE_SIXTEENTH_T=6,
+            ONE_FOURTH_T=1,
+            ONE_EIGHTH=2,
+            ONE_EIGHTH_T=3,
+            ONE_SIXTEENTH=4,
+            ONE_SIXTEENTH_T=5,
+            ONE_THIRTYSECOND=6,
             ONE_THIRTYSECOND_T=7)
 
 
@@ -60,6 +61,24 @@ def timeDivToStr(local_time_div):
     elif local_time_div == TimeDiv.ONE_THIRTYSECOND_T:
         return "1/32T"
     
+def timeDivToTimeSplit(local_time_div):
+    if local_time_div == TimeDiv.ONE_FOURTH:
+        return 24
+    elif local_time_div == TimeDiv.ONE_FOURTH_T:
+        return 16
+    elif local_time_div == TimeDiv.ONE_EIGHTH:
+        return 12
+    elif local_time_div == TimeDiv.ONE_EIGHTH_T:
+        return 8
+    elif local_time_div == TimeDiv.ONE_SIXTEENTH:
+        return 6
+    elif local_time_div == TimeDiv.ONE_SIXTEENTH_T:
+        return 4
+    elif local_time_div == TimeDiv.ONE_THIRTYSECOND:
+        return 3
+    elif local_time_div == TimeDiv.ONE_THIRTYSECOND_T:
+        return 2
+    
 def arpModeToStr(local_arp_mode):
     if local_arp_mode == ArpMode.UP:
         return "Up"
@@ -77,7 +96,45 @@ def arpModeToStr(local_arp_mode):
         return "Up x2"
     elif local_arp_mode == ArpMode.DWNX2:
         return "Down x2"
-
+    
+def sort_notes_for_arp_mode(local_arp_mode, arp_notes):
+    to_return = []
+    cpy_arp_notes = list(arp_notes)
+    
+    if local_arp_mode == ArpMode.UP:
+        cpy_arp_notes.sort()
+        to_return = cpy_arp_notes
+    elif local_arp_mode == ArpMode.DWN:
+        cpy_arp_notes.sort()
+        cpy_arp_notes.reverse()
+        to_return = cpy_arp_notes
+    elif local_arp_mode == ArpMode.INC:
+        cpy_arp_notes.sort()
+        rev_cpy_arp_notes = list(cpy_arp_notes)
+        rev_cpy_arp_notes.reverse()
+        to_return = cpy_arp_notes+rev_cpy_arp_notes
+    elif local_arp_mode == ArpMode.EXC:
+        cpy_arp_notes.sort()
+        rev_cpy_arp_notes = list(cpy_arp_notes)
+        rev_cpy_arp_notes.reverse()
+        to_return = cpy_arp_notes+rev_cpy_arp_notes[1:-1]
+    elif local_arp_mode == ArpMode.RAND: # in random, the index of the note played will be random, the array doesn't change
+        to_return = cpy_arp_notes
+    elif local_arp_mode == ArpMode.ORDER:
+        to_return = cpy_arp_notes
+    elif local_arp_mode == ArpMode.UPX2:
+        cpy_arp_notes.sort()
+        for x in cpy_arp_notes:
+            to_return.append(x)
+            to_return.append(x)
+    elif local_arp_mode == ArpMode.DWNX2:
+        cpy_arp_notes.sort()
+        cpy_arp_notes.reverse()
+        for x in cpy_arp_notes:
+            to_return.append(x)
+            to_return.append(x)
+    return to_return        
+    
 
 def playModeToStr(local_play_mode):
     if local_play_mode == PlayMode.PLAYING:
@@ -102,10 +159,13 @@ elif self.mode == Mode.ARPEGIATOR:
 class KeyboardConfiguration:
     def __init__(self):
         self.mode = Mode.BASIC
-        self.time_div = TimeDiv.ONE_FOURTH
         self.rate = 60
         self.octave_offset = 0
         self.play_mode = PlayMode.STOPPED
+        
+        self.time_div = TimeDiv.ONE_FOURTH
+        self.change_time_div = False
+        self.load_time_div = TimeDiv.ONE_FOURTH
         
         self.midi_change_channel = False
         self.midi_change_channel_channel = 0        
@@ -163,13 +223,19 @@ class KeyboardConfiguration:
                         self.note_off(self.last_seq_key_played)                                       
         elif self.mode == Mode.ARPEGIATOR:
             if self.play_mode == PlayMode.PLAYING:
-                if self.play_note_timer_tenth_counter == 0:    
-                    if(len(self.arp_notes) != 0):
-                        if(self.current_arp_index >len(self.arp_notes) -1):
-                            self.current_arp_index = len(self.arp_notes) -1
-                        self.last_arp_key_played = self.arp_notes[self.current_arp_index]
+                if self.play_note_timer_tenth_counter == 0:                    
+                    if(len(self.arp_notes) != 0):                        
+                    
+                        arp_notes_mode = sort_notes_for_arp_mode(self.arp_mode, self.arp_notes)
+                        
+                        if(self.current_arp_index >len(arp_notes_mode) -1):
+                            self.current_arp_index = len(arp_notes_mode) -1
+                        if self.arp_mode == ArpMode.RAND:
+                            self.last_arp_key_played = arp_notes_mode[randrange(0,len(arp_notes_mode))]
+                        else:
+                            self.last_arp_key_played = arp_notes_mode[self.current_arp_index]
                         self.__send_note_on(self.last_arp_key_played)
-                        self.current_arp_index = (self.current_arp_index+1)%len(self.arp_notes)
+                        self.current_arp_index = (self.current_arp_index+1)%len(arp_notes_mode)
                 elif self.play_note_timer_tenth_counter == self.player_note_timer_gate_pertenth:                
                     if self.last_arp_key_played != -1:
                         self.__send_note_off(self.last_arp_key_played)  
@@ -194,9 +260,11 @@ class KeyboardConfiguration:
         self.display()
         
     def incr_mode(self):
-        self.mode = ((self.mode+1)%3)
-        self.__send__all_note_off()
         self.play_mode = PlayMode.STOPPED
+        self.mode = ((self.mode+1)%3)
+        if self.last_seq_key_played != -1:
+            self.__send_note_off(self.last_seq_key_played)
+        self.__send__all_note_off()
         
         if self.mode == Mode.BASIC:
             pass
@@ -211,9 +279,11 @@ class KeyboardConfiguration:
         self.display()
         
     def decr_mode(self):
-        self.mode = ((self.mode-1)%3)
-        self.__send__all_note_off()
         self.play_mode = PlayMode.STOPPED
+        self.mode = ((self.mode-1)%3)
+        if self.last_seq_key_played != -1:
+            self.__send_note_off(self.last_seq_key_played)
+        self.__send__all_note_off()
         
         if self.mode == Mode.BASIC:
             pass
@@ -258,7 +328,8 @@ class KeyboardConfiguration:
                 if self.play_mode == PlayMode.PLAYING:
                     self.upadate_timer_frequency()
             elif self.mode == Mode.ARPEGIATOR:
-                pass
+                if self.play_mode == PlayMode.PLAYING:
+                    self.upadate_timer_frequency()
             self.display()
         
     def note_on(self, note):
@@ -305,7 +376,7 @@ class KeyboardConfiguration:
             self.led.value(0)
         
     def __send__all_note_off(self):
-        self.uart.write(ustruct.pack("bbb",0xb+self.midi_channel,123,0))
+        self.uart.write(ustruct.pack("bbb",0xb0+self.midi_channel,123,0))
         self.led.value(0)
         
     def blank_tile_pressed(self):
@@ -380,6 +451,11 @@ class KeyboardConfiguration:
             pass
         self.display()
         
+    def change_time_div_pressed(self):
+        self.change_time_div = not self.change_time_div
+        self.load_time_div = self.time_div
+        self.display()
+
     def load_seq_pressed(self):
         if self.mode == Mode.BASIC:
             pass
@@ -419,8 +495,13 @@ class KeyboardConfiguration:
                 if digit != 0:
                     self.player_note_timer_gate_pertenth = digit                              
                 self.display()
-                
-    def sharp_pressed(self):
+
+        if self.change_time_div == True: # works in any mode TODO
+            if digit != 0 and digit != 9:
+                self.load_time_div = (digit-1) #works with digit from 1 to 8 and the enum start to 0 so remove 1
+            self.display()
+
+    def sharp_pressed(self): # sharp = ok
         if self.mode == Mode.BASIC:
             if self.midi_change_channel == True:
                 self.midi_change_channel = False
@@ -440,8 +521,13 @@ class KeyboardConfiguration:
             if self.changing_gate_length == True:
                 self.changing_gate_length = False                          
                 self.display()
-                    
-    def star_pressed(self):
+                
+        if self.change_time_div == True: # works in any mode TODO
+            self.time_div = self.load_time_div
+            self.change_time_div = False
+            self.display()
+
+    def star_pressed(self): # star = cancel
         if self.mode == Mode.BASIC:
             if self.midi_change_channel == True:
                 self.midi_change_channel = False
@@ -459,7 +545,11 @@ class KeyboardConfiguration:
             if self.changing_gate_length == True:
                 self.changing_gate_length = False                          
                 self.display()
-        
+                
+        if self.change_time_div == True: # works in any mode TODO
+            self.change_time_div = False
+            self.display()
+
     def clear_seq_hold_pressed(self):
         if self.mode == Mode.BASIC:
             pass

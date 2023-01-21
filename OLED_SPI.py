@@ -236,18 +236,37 @@ class OLED_1inch3(framebuf.FrameBuffer):
             self.fill_rect(0,50,128,64,self.white)
             key_str = "Key:C"+str(self.keyboard_config.octave_offset+4)
             self.font_writer_arial10.text(key_str,2, 53, True)
-            time_div_str = "Div:"+timeDivToStr(self.keyboard_config.time_div)
-            self.font_writer_arial10.text(time_div_str,55, 53,True)
+            #TODO
+            time_div_x = 39
+            time_div_y = 51
+            if self.keyboard_config.change_time_div == True:
+                self.fill_rect(time_div_x,time_div_y,80,12,self.black)
+                time_div_str = "TimeDiv : "+timeDivToStr(self.keyboard_config.load_time_div)
+                self.font_writer_arial10.text(time_div_str,time_div_x+2, time_div_y+2)
+            else:    
+                time_div_str = "TimeDiv : "+timeDivToStr(self.keyboard_config.time_div)
+                self.font_writer_arial10.text(time_div_str,time_div_x+2, time_div_y+2,True)
+                
+            
         
                 
         if self.keyboard_config.mode == Mode.BASIC:
             key_str = "Key : C"+str(self.keyboard_config.octave_offset+4)
             self.font_writer_font6.text(key_str,5, 22)
-            time_div_str = "TimeDiv : "+timeDivToStr(self.keyboard_config.time_div)
-            self.font_writer_font6.text(time_div_str,5, 44)
+            
+            #TODO time div
+            time_div_x = 3
+            time_div_y = 42
+            if self.keyboard_config.change_time_div == True:
+                self.fill_rect(time_div_x,time_div_y,101,16,self.white)
+                time_div_str = "TimeDiv : "+timeDivToStr(self.keyboard_config.load_time_div)
+                self.font_writer_font6.text(time_div_str,time_div_x+2, time_div_y+2,True)
+            else:    
+                time_div_str = "TimeDiv : "+timeDivToStr(self.keyboard_config.time_div)
+                self.font_writer_font6.text(time_div_str,time_div_x+2, time_div_y+2,False)
             
             midi_ch_x = 96
-            midi_ch_y = 51
+            midi_ch_y = 16
             if self.keyboard_config.midi_change_channel == True:
                 self.rect(midi_ch_x,midi_ch_y,31,12,self.white)
                 midi_channel_txt = 'Ch {:02d}'.format(self.keyboard_config.midi_change_channel_channel).replace("0","_")
@@ -258,7 +277,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
                 midi_channel_txt = 'Ch {:02d}'.format(self.keyboard_config.midi_channel)
                 self.font_writer_arial10.text(midi_channel_txt,midi_ch_x+2,midi_ch_y+2,True)
 
-        
+
         
         elif self.keyboard_config.mode == Mode.SEQUENCER:
             seq_n_x = 3
@@ -277,7 +296,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
             
         elif self.keyboard_config.mode == Mode.ARPEGIATOR:
             
-            for i in range(0,8):#TODO
+            for i in range(0,8):
                 if self.keyboard_config.arp_mode == i:
                     self.fill_rect(0+i*16, 34,16,16,self.white)
                     self.blit(self.fbufs_inv_arp_modes[i],0+i*16, 34)

@@ -37,7 +37,7 @@ for x in range(0,COL_NUMBER):
     col_list[x] = Pin(col_list[x], Pin.IN, Pin.PULL_UP)
 
 key_map= [
-    ["up","t","g",".","b","guide","Fnct","Connexion Fin"],
+    ["up","t","g",".","b","guide","Fnct","connexion fin"],
     ["correction","e","d","Esc","c","z","s","x"],
     ["annulation","r","f",",","v","a","q","w"],
     ["down","y","h","'","n","sommaire","Ctrl","Espace"],
@@ -135,6 +135,8 @@ def customKeyOn(key):
         keyboard_config.decr_arp_mode()
     elif key == "répétition":
         keyboard_config.incr_arp_mode()
+    elif key == "connexion fin":
+        keyboard_config.change_time_div_pressed()
     elif key.isdigit():
         keyboard_config.digit_pressed(int(key))
         
