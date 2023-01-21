@@ -10,6 +10,7 @@ import font10
 import font6
 import freesans20
 import writer
+from random import randrange
 
 DC = 8
 RST = 12
@@ -30,6 +31,9 @@ class OLED_1inch3(framebuf.FrameBuffer):
     def __init__(self, keyboard_config):
         self.width = 128
         self.height = 64
+        
+        self.screensaver_active = False
+        self.screesaver_pixels = [[0]*2]*20
         
         self.cs = Pin(CS,Pin.OUT)
         self.rst = Pin(RST,Pin.OUT)
@@ -146,6 +150,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
         self.write_cmd(0xad)    #set charge pump enable 
         self.write_cmd(0x8a)    #Set DC-DC enable (a=0:disable; a=1:enable)
         self.write_cmd(0XAF)
+        
     def show(self):
         self.write_cmd(0xb0)
         for page in range(0,64):
@@ -154,7 +159,39 @@ class OLED_1inch3(framebuf.FrameBuffer):
             self.write_cmd(0x10 + (self.column >> 4))
             for num in range(0,16):
                 self.write_data(self.buffer[page*16+num])
-                
+    
+    def is_screensaver(self):
+        return self.screensaver_active
+        
+    def set_screensaver_mode(self):
+        self.screensaver_active = True
+        for i in range(0,len(self.screesaver_pixels)):
+            self.screesaver_pixels[i] = [randrange(0,128), randrange(0,64)]
+        self.fill(self.black)        
+        
+        for pix in self.screesaver_pixels:
+            self.rect(pix[0],pix[1],1,1,self.white)
+            
+        self.show()
+        
+    def reset_screensaver_mode(self): 
+        self.screensaver_active = False
+        self.display()
+        
+    def update_screensaver(self):
+        
+        for i in range(0,len(self.screesaver_pixels)):
+            self.screesaver_pixels[i][1] += 1
+            if self.screesaver_pixels[i][1] > 63:                
+                self.screesaver_pixels[i] = [randrange(0,128), 0]
+        self.fill(self.black)        
+        
+        for pix in self.screesaver_pixels:
+            self.rect(pix[0],pix[1],1,1,self.white)
+            
+        self.show()
+        
+        
     def display_helixbyte(self):
         with open('lxb64x64.pbm', 'rb') as f:
             f.readline() # Magic number
@@ -190,62 +227,80 @@ class OLED_1inch3(framebuf.FrameBuffer):
         self.text("hey", 0, 64-8)
         self.show()
         time.sleep(1)
-        
-        time.sleep(1)                
+                     
     def display(self):
-        #self.display_demo()
-        
-        self.fill(self.black)
-        
-        self.font_writer_font10.text(modeToStr(self.keyboard_config.mode),17,1)
-        bpm_txt = str(self.keyboard_config.rate)+"bpm"
-        self.font_writer_arial10.text(bpm_txt,(128-(7*len(bpm_txt))),3)
-        
-        self.rect(0,0,15,15,self.white)
-        correct_play_mode_buff = self.fbufs_play_mode[self.keyboard_config.play_mode]
-        self.blit(correct_play_mode_buff, 3, 3)
-        
-        print("Play/pause :"+playModeToStr(self.keyboard_config.play_mode))
-
-        self.line(0,15,128,15,self.white)
-        
-        if self.keyboard_config.mode == Mode.SEQUENCER or self.keyboard_config.mode == Mode.ARPEGIATOR:
-              #gate lenght picto
-            start_line = 62
-            gate_up = 3
-            gate_low = 13            
-            gate_lenght = self.keyboard_config.player_note_timer_gate_pertenth
-            gate_off = 10 - gate_lenght
+        if self.screensaver_active == False:
+            #self.display_demo()
             
-            if self.keyboard_config.changing_gate_length:
-                self.fill_rect(start_line-1,0,23,15,self.white)
-                self.line(start_line,gate_low,start_line+2,gate_low,self.black)
-                self.line(start_line+2,gate_low,start_line+2,gate_up,self.black)
-                self.line(start_line+2,gate_up,start_line+2*gate_lenght,gate_up,self.black)
-                self.line(start_line+2*gate_lenght,gate_up,start_line+2*gate_lenght,gate_low,self.black)
-                self.line(start_line+2*gate_lenght,13,start_line+2*gate_lenght+2*(gate_off),13,self.black)
-
-            else:
-                self.line(start_line,gate_low,start_line+2,gate_low,self.white)
-                self.line(start_line+2,gate_low,start_line+2,gate_up,self.white)
-                self.line(start_line+2,gate_up,start_line+2*gate_lenght,gate_up,self.white)
-                self.line(start_line+2*gate_lenght,gate_up,start_line+2*gate_lenght,gate_low,self.white)
-                self.line(start_line+2*gate_lenght,13,start_line+2*gate_lenght+2*(gate_off),13,self.white)
+            self.fill(self.black)
             
-            # bottom block key and Tdiv
-            self.fill_rect(0,50,128,64,self.white)
-            key_str = "Key:C"+str(self.keyboard_config.octave_offset+4)
-            self.font_writer_arial10.text(key_str,2, 53, True)
-            #TODO
-            time_div_x = 39
-            time_div_y = 51
-            if self.keyboard_config.change_time_div == True:
-                self.fill_rect(time_div_x,time_div_y,80,12,self.black)
-                time_div_str = "TimeDiv : "+timeDivToStr(self.keyboard_config.load_time_div)
-                self.font_writer_arial10.text(time_div_str,time_div_x+2, time_div_y+2)
-            else:    
-                time_div_str = "TimeDiv : "+timeDivToStr(self.keyboard_config.time_div)
-                self.font_writer_arial10.text(time_div_str,time_div_x+2, time_div_y+2,True)
+            self.font_writer_font10.text(modeToStr(self.keyboard_config.mode),17,1)
+            bpm_txt = str(self.keyboard_config.rate)+"bpm"
+            self.font_writer_arial10.text(bpm_txt,(128-(7*len(bpm_txt))),3)
+            
+            self.rect(0,0,15,15,self.white)
+            correct_play_mode_buff = self.fbufs_play_mode[self.keyboard_config.play_mode]
+            self.blit(correct_play_mode_buff, 3, 3)
+            
+            print("Play/pause :"+playModeToStr(self.keyboard_config.play_mode))
+
+            self.line(0,15,128,15,self.white)
+            
+            if self.keyboard_config.mode == Mode.SEQUENCER:                           
+                #todo
+                self.line(84,15,84,50,self.white)
+                self.line(84,40,127,40,self.white)
+                if self.keyboard_config.transpose_keyboardplay_mode == True:
+                    self.fill_rect(86,17,40,10,self.white)
+                    self.font_writer_arial10.text("transpo.",87,17,True)
+                    self.font_writer_arial10.text("kb play",87,29)
+
+                else:
+                    self.fill_rect(86,29,40,10,self.white)
+                    self.font_writer_arial10.text("transpo.",87,17)
+                    self.font_writer_arial10.text("kb play",87,29,True)
+                self.font_writer_arial10.text("key:"+midi_to_key(self.keyboard_config.transpose_key),87,41)
+                # true = transpose, false = keyboardplay
+                #self.transpose_key = 60 # 60 = C4 
+                
+            
+            if self.keyboard_config.mode == Mode.SEQUENCER or self.keyboard_config.mode == Mode.ARPEGIATOR:
+                  #gate lenght picto
+                start_line = 62
+                gate_up = 3
+                gate_low = 13            
+                gate_lenght = self.keyboard_config.player_note_timer_gate_pertenth
+                gate_off = 10 - gate_lenght
+                
+                if self.keyboard_config.changing_gate_length:
+                    self.fill_rect(start_line-1,0,23,15,self.white)
+                    self.line(start_line,gate_low,start_line+2,gate_low,self.black)
+                    self.line(start_line+2,gate_low,start_line+2,gate_up,self.black)
+                    self.line(start_line+2,gate_up,start_line+2*gate_lenght,gate_up,self.black)
+                    self.line(start_line+2*gate_lenght,gate_up,start_line+2*gate_lenght,gate_low,self.black)
+                    self.line(start_line+2*gate_lenght,13,start_line+2*gate_lenght+2*(gate_off),13,self.black)
+
+                else:
+                    self.line(start_line,gate_low,start_line+2,gate_low,self.white)
+                    self.line(start_line+2,gate_low,start_line+2,gate_up,self.white)
+                    self.line(start_line+2,gate_up,start_line+2*gate_lenght,gate_up,self.white)
+                    self.line(start_line+2*gate_lenght,gate_up,start_line+2*gate_lenght,gate_low,self.white)
+                    self.line(start_line+2*gate_lenght,13,start_line+2*gate_lenght+2*(gate_off),13,self.white)
+                
+                # bottom block key and Tdiv
+                self.fill_rect(0,50,128,64,self.white)
+                key_str = "Key:C"+str(self.keyboard_config.octave_offset+4)
+                self.font_writer_arial10.text(key_str,2, 53, True)
+                #TODO
+                time_div_x = 39
+                time_div_y = 51
+                if self.keyboard_config.change_time_div == True:
+                    self.fill_rect(time_div_x,time_div_y,76,12,self.black)
+                    time_div_str = "TimeDiv : "+timeDivToStr(self.keyboard_config.load_time_div)
+                    self.font_writer_arial10.text(time_div_str,time_div_x+2, time_div_y+2)
+                else:    
+                    time_div_str = "TimeDiv : "+timeDivToStr(self.keyboard_config.time_div)
+                    self.font_writer_arial10.text(time_div_str,time_div_x+2, time_div_y+2,True)
                 
             
         
@@ -254,7 +309,6 @@ class OLED_1inch3(framebuf.FrameBuffer):
             key_str = "Key : C"+str(self.keyboard_config.octave_offset+4)
             self.font_writer_font6.text(key_str,5, 22)
             
-            #TODO time div
             time_div_x = 3
             time_div_y = 42
             if self.keyboard_config.change_time_div == True:
@@ -281,7 +335,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
         
         elif self.keyboard_config.mode == Mode.SEQUENCER:
             seq_n_x = 3
-            seq_n_y = 19
+            seq_n_y = 17
             if self.keyboard_config.loading_seq:
                 seq_number_str = 'Seq n  {:02d}'.format(self.keyboard_config.loading_seq_number).replace("0","_")
                 self.fill_rect(seq_n_x,seq_n_y,66,16,self.white)
@@ -292,8 +346,9 @@ class OLED_1inch3(framebuf.FrameBuffer):
                 self.font_writer_font6.text(seq_number_str,seq_n_x+2,seq_n_y+2)
                 self.font_writer_arial10.text("o",seq_n_x+38,seq_n_y)
                 
-            self.font_writer_font6.text("{:03d} steps".format(self.keyboard_config.seq_len),seq_n_x+2, seq_n_y+16)
-            
+            self.font_writer_font6.text("{:03d} steps".format(self.keyboard_config.seq_len),seq_n_x+2, seq_n_y+18)
+ 
+                
         elif self.keyboard_config.mode == Mode.ARPEGIATOR:
             
             for i in range(0,8):

@@ -146,6 +146,11 @@ def playModeToStr(local_play_mode):
     elif local_play_mode == PlayMode.STOPPED:
         return "⏹"
 
+def midi_to_key(note_num):
+    notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+    octave = (note_num // 12) - 1
+    key = notes[note_num % 12] + str(octave)
+    return key
 
 """
 if self.mode == Mode.BASIC:
@@ -165,7 +170,7 @@ class KeyboardConfiguration:
         
         self.time_div = TimeDiv.ONE_FOURTH
         self.change_time_div = False
-        self.load_time_div = TimeDiv.ONE_FOURTH
+        self.load_time_div = TimeDiv.ONE_FOURTH        
         
         # flag to tell if a midi resume or midi play needs to be sent befor a midi tick
         self.request_midi_resume = False
@@ -184,6 +189,8 @@ class KeyboardConfiguration:
         self.loading_seq = False
         self.loading_seq_number = 0
         self.last_seq_key_played = -1
+        self.transpose_keyboardplay_mode = True # true = transpose, false = keyboardplay
+        self.transpose_key = 60 # 60 = C4 
         
         # arpegiator linked attributes
         self.arp_mode = ArpMode.ORDER
@@ -225,12 +232,15 @@ class KeyboardConfiguration:
                 per_tenth = self.player_note_timer_gate_pertenth
                 
                 if (counter % (t_div*10)) == 0:
+                    
                     self.last_seq_key_played = self.seq_notes[self.current_seq_index]
-                    self.note_on( self.last_seq_key_played)
+                    if self.last_seq_key_played != -1:
+                        self.last_seq_key_played = self.last_seq_key_played+(self.transpose_key-60)
+                    self.__send_note_on( self.last_seq_key_played)
                     self.current_seq_index = (self.current_seq_index+1)%self.seq_len      
                 elif ((counter+(((10-per_tenth)/10)*(240*(t_div/24))))%(t_div*10)) == 0:
                     if self.last_seq_key_played != -1:
-                        self.note_off(self.last_seq_key_played)                                       
+                        self.__send_note_off(self.last_seq_key_played)                                       
         elif self.mode == Mode.ARPEGIATOR:
             #set variable to compute ton and toff to make it more readable
             counter = self.play_note_timer_tenth_counter
@@ -330,11 +340,12 @@ class KeyboardConfiguration:
             self.arp_mode = (self.arp_mode+1)%8
             self.display()
     
-    def decr_arp_mode(self):
+    def decr_arp_mode_kbp_transpose(self):
         if self.mode == Mode.BASIC:
             pass
         elif self.mode == Mode.SEQUENCER:
-            pass
+            self.transpose_keyboardplay_mode = not self.transpose_keyboardplay_mode
+            self.display()
         elif self.mode == Mode.ARPEGIATOR:
             self.arp_mode = (self.arp_mode-1)%8
             self.display()
@@ -359,7 +370,11 @@ class KeyboardConfiguration:
                 self.save_sequence_file(self.seq_number)
                 self.display()
             elif self.play_mode == PlayMode.PLAYING:
-                self.__send_note_on(note)
+                if self.transpose_keyboardplay_mode == True:
+                    self.transpose_key = note
+                    self.display()
+                else:      
+                    self.__send_note_on(note)          
         elif self.mode == Mode.ARPEGIATOR:
             self.arp_number_note_pressed += 1
             if self.hold == False:                

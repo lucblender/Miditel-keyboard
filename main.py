@@ -12,6 +12,9 @@ rate_potentiometer = machine.ADC(28)
 COL_NUMBER = 8
 ROW_NUMBER = 8
 
+MAX_DELAY_BEFORE_SCREENSAVER_S = 300
+last_key_update = time.time()
+
 
 # 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 # F E D C B A 9 8 7 6 5  4  3  2  1  0
@@ -69,17 +72,21 @@ keyboard_config.set_display(OLED)
 def KeypadRead(cols,rows):
     global key_state
     global key_state_old
+    global last_key_update
+    global OLED
     
     key_state = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
         
     for r in range(0, ROW_NUMBER):
         rows[r].value(0)
-        utime.sleep(0.01)
         for c in range(0,COL_NUMBER):
             if cols[c].value() == 0:
                 key_state[r][c] = 1
 
             if(key_state[r][c] != key_state_old[r][c]):
+                last_key_update = time.time()
+                if OLED.is_screensaver() == True:
+                    OLED.reset_screensaver_mode()
                 key=key_map[r][c]
                 note=note_map[r][c]
                 if key_state[r][c] == 0:                          
@@ -132,7 +139,7 @@ def customKeyOn(key):
     elif key == "annulation":
         keyboard_config.clear_seq_hold_pressed()
     elif key == "retour":
-        keyboard_config.decr_arp_mode()
+        keyboard_config.decr_arp_mode_kbp_transpose()
     elif key == "répétition":
         keyboard_config.incr_arp_mode()
     elif key == "connexion fin":
@@ -148,7 +155,15 @@ if boot_exit_button.value() == 1:
     OLED.display_helixbyte()
     time.sleep(0.5)
     keyboard_config.display()
+    index = 0
     while True:
+        if time.time() - last_key_update > MAX_DELAY_BEFORE_SCREENSAVER_S and OLED.is_screensaver() == False:
+            OLED.set_screensaver_mode()
+        if OLED.is_screensaver() == True:           
+            index+=1
+            if index%16== True:
+                OLED.update_screensaver()
+                index = 0
         key=KeypadRead(col_list, row_list)
         keyboard_config.set_rate_potentiometer(rate_potentiometer.read_u16())
 else:
