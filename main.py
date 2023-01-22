@@ -43,7 +43,7 @@ key_map= [
     ["up","t","g",".","b","guide","Fnct","connexion fin"],
     ["correction","e","d","Esc","c","z","s","x"],
     ["annulation","r","f",",","v","a","q","w"],
-    ["down","y","h","'","n","sommaire","Ctrl","Espace"],
+    ["down","y","h","'","n","sommaire","Ctrl","espace"],
     ["shift",";","*","suite","0","u","j","#"],
     ["left","-","7","retour","8","i","k","9"],
     ["right",":","4","envoi","5","o","l","6"],
@@ -144,11 +144,15 @@ def customKeyOn(key):
         keyboard_config.incr_arp_mode()
     elif key == "connexion fin":
         keyboard_config.change_time_div_pressed()
+    elif key == "espace":
+        keyboard_config.note_on(69)#play A4 440Hz
     elif key.isdigit():
         keyboard_config.digit_pressed(int(key))
         
 def customKeyOff(key):
-    print("You released: "+key)  
+    print("You released: "+key) 
+    if key == "espace":
+        keyboard_config.note_off(69) 
 
 if boot_exit_button.value() == 1:
     

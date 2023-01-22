@@ -390,15 +390,21 @@ class KeyboardConfiguration:
                     self.transpose_key = note
                     self.display()
                 else:      
-                    self.__send_note_on(note)          
+                    self.__send_note_on(note)                    
+            elif self.play_mode == PlayMode.STOPPED:
+                self.__send_note_on(note)
         elif self.mode == Mode.ARPEGIATOR:
-            self.arp_number_note_pressed += 1
-            if self.hold == False:                
-                self.arp_notes.append(note)
+                              
+            if self.play_mode == PlayMode.STOPPED:
+                self.__send_note_on(note)
             else:
-                if self.arp_number_note_pressed == 1:
-                    self.arp_notes = []
-                self.arp_notes.append(note)
+                self.arp_number_note_pressed += 1
+                if self.hold == False:                
+                    self.arp_notes.append(note)
+                else:
+                    if self.arp_number_note_pressed == 1:
+                        self.arp_notes = []
+                    self.arp_notes.append(note)
                 
     def note_off(self, note):
         if self.mode == Mode.BASIC:
@@ -406,11 +412,17 @@ class KeyboardConfiguration:
         elif self.mode == Mode.SEQUENCER:
             if self.play_mode == PlayMode.PLAYING:
                 self.__send_note_off(note)
+            elif self.play_mode == PlayMode.STOPPED:
+                self.__send_note_off(note)
+                
         elif self.mode == Mode.ARPEGIATOR:
-            self.arp_number_note_pressed -= 1
-            if self.hold == False:
-                if note in self.arp_notes:
-                    self.arp_notes.remove(note)
+            if self.play_mode == PlayMode.STOPPED:
+                self.__send_note_off(note)
+            else:
+                self.arp_number_note_pressed -= 1
+                if self.hold == False:
+                    if note in self.arp_notes:
+                        self.arp_notes.remove(note)
 
 
     def __send_note_on(self, note):
