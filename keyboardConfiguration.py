@@ -168,6 +168,8 @@ class KeyboardConfiguration:
         self.octave_offset = 0
         self.play_mode = PlayMode.STOPPED
         
+        self.rate_led = None
+        
         self.time_div = TimeDiv.ONE_FOURTH
         self.change_time_div = False
         self.load_time_div = TimeDiv.ONE_FOURTH        
@@ -213,6 +215,11 @@ class KeyboardConfiguration:
         self.player_note_timer_gate_pertenth = 5
         self.oled_display = None
         self.display()
+        
+
+    def set_led(self, led):
+        self.rate_led = led
+        self.rate_led.off()
 
     def set_display(self, oled_display):
         self.oled_display = oled_display
@@ -274,6 +281,15 @@ class KeyboardConfiguration:
             
         if self.play_note_timer_tenth_counter%10 == 0:
             self.__send_midi_clock()
+            
+        if self.play_note_timer_tenth_counter%240 == 0:
+            if self.rate_led != None:
+                self.rate_led.on()
+
+        if (self.play_note_timer_tenth_counter+20)%120 == 0:
+            if self.rate_led != None:
+                self.rate_led.off()
+                
         self.play_note_timer_tenth_counter = (self.play_note_timer_tenth_counter+1)%480
 
     def upadate_timer_frequency(self):

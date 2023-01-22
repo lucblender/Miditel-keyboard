@@ -6,7 +6,7 @@ import time
 from keyboardConfiguration import KeyboardConfiguration
 from OLED_SPI import OLED_1inch3
     
-boot_exit_button = Pin(26, Pin.IN, Pin.PULL_UP)
+boot_exit_button = Pin(17, Pin.IN, Pin.PULL_UP)
 rate_potentiometer = machine.ADC(28)
 
 COL_NUMBER = 8
@@ -154,6 +154,7 @@ if boot_exit_button.value() == 1:
     
     OLED.display_helixbyte()
     time.sleep(0.5)
+    keyboard_config.set_led(Pin(17, Pin.OUT))
     keyboard_config.display()
     index = 0
     while True:
