@@ -165,6 +165,10 @@ class KeyboardConfiguration:
     def __init__(self):
         self.mode = Mode.BASIC
         self.rate = 60
+        self.mod = 0
+        self.pitch_bend = 0x2000
+        self.pitch_bend_counter = 0
+        
         self.octave_offset = 0
         self.play_mode = PlayMode.STOPPED
         
@@ -347,11 +351,16 @@ class KeyboardConfiguration:
         
         self.display()
         
-    def incr_arp_mode(self):
+    def incr_arp_mode_undo_seq(self):
         if self.mode == Mode.BASIC:
             pass
         elif self.mode == Mode.SEQUENCER:
-            pass
+            if self.play_mode == PlayMode.RECORDING:
+                if len(self.seq_notes) > 0:
+                    self.seq_notes = self.seq_notes[:-1]
+                    self.seq_len -= 1
+                    self.save_sequence_file(self.seq_number)
+                    self.display()
         elif self.mode == Mode.ARPEGIATOR:
             self.arp_mode = (self.arp_mode+1)%8
             self.display()
@@ -375,6 +384,33 @@ class KeyboardConfiguration:
             self.rate = new_rate
             self.upadate_timer_frequency()
             self.display()
+            
+
+    def set_pitch_potentiometer(self, pot_value):#TODO from 0 to 0x3fff, 0x2000 is the center, divided range by two on my setup
+        old_pitch_bend = self.pitch_bend
+        new_pitch_bend = (((pot_value/65536) * (0x3fff/2))+0x2000/2)
+        
+        if abs(new_pitch_bend- old_pitch_bend)>100:
+            self.pitch_bend = new_pitch_bend
+            self.__send_pitch_wheel(int(self.pitch_bend))
+            self.pitch_bend_counter = 0
+        else:
+            if self.pitch_bend_counter != -1:
+                self.pitch_bend_counter += 1
+                if self.pitch_bend_counter > 500:                
+                    self.pitch_bend_counter = -1
+                    self.__send_pitch_wheel(0x2000)
+                
+                
+        
+
+    def set_mod_potentiometer(self, pot_value): #mod from 0 to 127
+        old_mod = self.mod
+        new_mod = ((pot_value/65536) * 127)
+        
+        if abs(new_mod- old_mod)>1:
+            self.mod = new_mod
+            self.__send_mod_wheel(int(self.mod))
         
     def note_on(self, note):
         if self.mode == Mode.BASIC:
@@ -439,17 +475,34 @@ class KeyboardConfiguration:
         self.uart.write(ustruct.pack("bbb",0xb0+self.midi_channel,123,0))
         self.led.value(0)
         
+    def __send_mod_wheel(self, mod_wheel_value):
+        if mod_wheel_value > 127:
+            mod_wheel_value = 127
+        elif mod_wheel_value < 0:
+            mod_wheel_value = 0
+        self.uart.write(ustruct.pack("bbb",0xb0+self.midi_channel,1,mod_wheel_value))
+        
+    def __send_pitch_wheel(self, pitch_wheel_value):
+        if pitch_wheel_value > 0x3fff:
+            pitch_wheel_value = 0x3fff
+        elif pitch_wheel_value < 0:
+            pitch_wheel_value = 0
+        lsb = pitch_wheel_value & 0x7F 
+        msb = (pitch_wheel_value >> 7) & 0x7F
+        
+        self.uart.write(ustruct.pack("bbb",0xe0+self.midi_channel,lsb, msb))
+        
     def __send_midi_clock(self):
-        self.uart.write(ustruct.pack("bbb",0xf8))
+        self.uart.write(ustruct.pack("b",0xf8))
         
     def __send_midi_start(self):
-        self.uart.write(ustruct.pack("bbb",0xfa))
+        self.uart.write(ustruct.pack("b",0xfa))
         
     def __send_midi_continue(self):
-        self.uart.write(ustruct.pack("bbb",0xfb))
+        self.uart.write(ustruct.pack("b",0xfb))
         
     def __send_midi_stop(self):
-        self.uart.write(ustruct.pack("bbb",0xfc))
+        self.uart.write(ustruct.pack("b",0xfc))
         
     def blank_tile_pressed(self):
         print("blank_tile")

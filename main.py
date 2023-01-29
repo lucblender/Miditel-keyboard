@@ -8,6 +8,8 @@ from OLED_SPI import OLED_1inch3
     
 boot_exit_button = Pin(17, Pin.IN, Pin.PULL_UP)
 rate_potentiometer = machine.ADC(28)
+pitch_potentiometer = machine.ADC(27)
+mod_potentiometer = machine.ADC(26)
 
 COL_NUMBER = 8
 ROW_NUMBER = 8
@@ -141,7 +143,7 @@ def customKeyOn(key):
     elif key == "retour":
         keyboard_config.decr_arp_mode_kbp_transpose()
     elif key == "répétition":
-        keyboard_config.incr_arp_mode()
+        keyboard_config.incr_arp_mode_undo_seq()
     elif key == "connexion fin":
         keyboard_config.change_time_div_pressed()
     elif key == "espace":
@@ -171,6 +173,8 @@ if boot_exit_button.value() == 1:
                 index = 0
         key=KeypadRead(col_list, row_list)
         keyboard_config.set_rate_potentiometer(rate_potentiometer.read_u16())
+        keyboard_config.set_pitch_potentiometer(pitch_potentiometer.read_u16())
+        keyboard_config.set_mod_potentiometer(mod_potentiometer.read_u16())
 else:
     OLED.display_helixbyte()
     time.sleep(0.5)
