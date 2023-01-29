@@ -367,7 +367,7 @@
       "idf": "",
       "netlist": "",
       "specctra_dsn": "",
-      "step": "",
+      "step": "midi-tel-interface-board_v0-3.step",
       "vrml": ""
     },
     "page_layout_descr_file": ""
