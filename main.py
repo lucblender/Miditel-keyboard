@@ -3,7 +3,7 @@ from machine import Pin
 import utime
 import time
 
-from keyboardConfiguration import KeyboardConfiguration
+from keyboardConfiguration import KeyboardConfiguration, append_error
 from OLED_SPI import OLED_1inch3
     
 boot_exit_button = Pin(17, Pin.IN, Pin.PULL_UP)
@@ -157,24 +157,26 @@ def customKeyOff(key):
         keyboard_config.note_off(69) 
 
 if boot_exit_button.value() == 1:
-    
-    OLED.display_helixbyte()
-    time.sleep(0.5)
-    keyboard_config.set_led(Pin(17, Pin.OUT))
-    keyboard_config.display()
-    index = 0
-    while True:
-        if time.time() - last_key_update > MAX_DELAY_BEFORE_SCREENSAVER_S and OLED.is_screensaver() == False:
-            OLED.set_screensaver_mode()
-        if OLED.is_screensaver() == True:           
-            index+=1
-            if index%16== True:
-                OLED.update_screensaver()
-                index = 0
-        key=KeypadRead(col_list, row_list)
-        keyboard_config.set_rate_potentiometer(rate_potentiometer.read_u16())
-        keyboard_config.set_pitch_potentiometer(pitch_potentiometer.read_u16())
-        keyboard_config.set_mod_potentiometer(mod_potentiometer.read_u16())
+    try:    
+        OLED.display_helixbyte()
+        time.sleep(0.5)
+        keyboard_config.set_led(Pin(17, Pin.OUT))
+        keyboard_config.display()
+        index = 0
+        while True:
+            if time.time() - last_key_update > MAX_DELAY_BEFORE_SCREENSAVER_S and OLED.is_screensaver() == False:
+                OLED.set_screensaver_mode()
+            if OLED.is_screensaver() == True:           
+                index+=1
+                if index%16== True:
+                    OLED.update_screensaver()
+                    index = 0
+            key=KeypadRead(col_list, row_list)
+            keyboard_config.set_rate_potentiometer(rate_potentiometer.read_u16())
+            keyboard_config.set_pitch_potentiometer(pitch_potentiometer.read_u16())
+            keyboard_config.set_mod_potentiometer(mod_potentiometer.read_u16())
+    except Exception as e:
+        append_error(e)
 else:
     OLED.display_helixbyte()
     time.sleep(0.5)

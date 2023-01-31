@@ -2,6 +2,7 @@ from machine import Pin,SPI
 import framebuf
 import time
 from keyboardConfiguration import *
+import arial8
 import arial10
 import arial35
 import arial_50
@@ -53,6 +54,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
         
         self.keyboard_config = keyboard_config
         
+        self.font_writer_arial8 = writer.Writer(self, arial8)
         self.font_writer_arial10 = writer.Writer(self, arial10)
         self.font_writer_arial35 = writer.Writer(self, arial35)
         self.font_writer_arial_50 = writer.Writer(self, arial_50)
@@ -234,7 +236,10 @@ class OLED_1inch3(framebuf.FrameBuffer):
             
             self.fill(self.black)
             
-            self.font_writer_font10.text(modeToStr(self.keyboard_config.mode),17,1)
+            if self.keyboard_config.mode == Mode.MULTISEQUENCER:
+                self.font_writer_arial10.text("Multi-seq",17,4)
+            else:
+                self.font_writer_font10.text(modeToStr(self.keyboard_config.mode),17,1)
             bpm_txt = str(self.keyboard_config.rate)+"bpm"
             self.font_writer_arial10.text(bpm_txt,(128-(7*len(bpm_txt))),3)
             
@@ -264,7 +269,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
                 #self.transpose_key = 60 # 60 = C4 
                 
             
-            if self.keyboard_config.mode == Mode.SEQUENCER or self.keyboard_config.mode == Mode.ARPEGIATOR:
+            if self.keyboard_config.mode == Mode.SEQUENCER or self.keyboard_config.mode == Mode.ARPEGIATOR or self.keyboard_config.mode == Mode.MULTISEQUENCER:
                   #gate lenght picto
                 start_line = 62
                 gate_up = 3
@@ -366,7 +371,45 @@ class OLED_1inch3(framebuf.FrameBuffer):
             else:   
                 time_div_str = "H"
                 self.fill_rect(114,51,12,12,self.black)
-                self.text(time_div_str,116,53,self.white)     
+                self.text(time_div_str,116,53,self.white)
+                
+        elif self.keyboard_config.mode == Mode.MULTISEQUENCER:
+            
+        # self.multi_sequence_index
+        # self.multi_sequence_highlighted
+        # self.loading_multi_seq
+        # self.loading_multi_seq_number
+            
+            for y in range(0,2):
+                for x in range(0,8):
+                    index = 8*y + x
+                    if index == self.keyboard_config.multi_sequence_highlighted:                        
+                        self.fill_rect(0+x*16, 17+16*y,16,16,self.white)
+                        self.rect(0+x*16, 17+16*y,16,16,self.black)
+                        if self.keyboard_config.loading_multi_seq == True:
+                            if self.keyboard_config.loading_multi_seq_number == -1:
+                                index_str = "__"
+                            elif self.keyboard_config.loading_multi_seq_number == 0:
+                                index_str = "_0"
+                            else:
+                                index_str = '{:02d}'.format(self.keyboard_config.loading_multi_seq_number).replace("0", "_")
+                            self.font_writer_arial8.text(index_str,4+x*16, 23+16*y,True)
+                        else:
+                            if self.keyboard_config.multi_sequence_index[index] == -1:
+                                index_str = '{:02d}'.format(index+1)
+                                self.font_writer_arial8.text(index_str,2+x*16, 19+16*y,True)
+                            else:
+                                index_str = '{:02d}'.format(self.keyboard_config.multi_sequence_index[index])
+                                self.font_writer_arial10.text(index_str,2+x*16, 21+16*y,True)
+                    else:                        
+                        self.rect(0+x*16, 17+16*y,16,16,self.white)
+                        
+                        if self.keyboard_config.multi_sequence_index[index] == -1:
+                            index_str = '{:02d}'.format(index+1)
+                            self.font_writer_arial8.text(index_str,2+x*16, 19+16*y)
+                        else:
+                            index_str = '{:02d}'.format(self.keyboard_config.multi_sequence_index[index])
+                            self.font_writer_arial10.text(index_str,2+x*16, 21+16*y)
         
         self.show()    
             
