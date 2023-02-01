@@ -247,7 +247,6 @@ class OLED_1inch3(framebuf.FrameBuffer):
             correct_play_mode_buff = self.fbufs_play_mode[self.keyboard_config.play_mode]
             self.blit(correct_play_mode_buff, 3, 3)
             
-            print("Play/pause :"+playModeToStr(self.keyboard_config.play_mode))
 
             self.line(0,15,128,15,self.white)
             
@@ -414,7 +413,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
         self.show()    
             
             
-        
+        """
         print("*-"*20)
         print("Mode :",modeToStr(self.keyboard_config.mode))#ok
         print("TimeDiv :",timeDivToStr(self.keyboard_config.time_div))#ok
@@ -429,6 +428,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
         print("Midi channel : ",self.keyboard_config.midi_channel)
         print("Arp Mode : ", arpModeToStr(self.keyboard_config.arp_mode))
         print("*-"*20)
+        """
           
 if __name__=='__main__':
     keyboard_config = KeyboardConfiguration()

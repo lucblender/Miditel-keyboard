@@ -164,6 +164,43 @@ def append_error(error):
     error_file.write(str(error))
     error_file.write("\n")
     error_file.close()
+    
+def decomp(n):
+    L = dict()
+    k = 2
+    while n != 1:
+        exp = 0
+        while n % k == 0:
+            n = n // k
+            exp += 1
+        if exp != 0:
+            L[k] = exp
+        k = k + 1        
+    return L
+
+def _ppcm(a,b):
+    Da = decomp(a)
+    Db = decomp(b)
+    p = 1
+    for facteur , exposant in Da.items():
+        if facteur in Db:
+            exp = max(exposant , Db[facteur])
+        else:
+            exp = exposant        
+        p *= facteur**exp        
+    for facteur , exposant in Db.items():
+        if facteur not in Da:
+            p *= facteur**exposant            
+    return p
+
+def ppcm(L):
+    while len( L ) > 1:
+        a = L[-1]
+        L.pop()
+        b = L[-1]
+        L.pop()
+        L.append( _ppcm(a,b) )
+    return L[0]
 
 """
 if self.mode == Mode.BASIC:
@@ -176,7 +213,7 @@ elif self.mode == Mode.ARPEGIATOR:
 
 class KeyboardConfiguration:
     def __init__(self):
-        self.mode = Mode.MULTISEQUENCER
+        self.mode = Mode.BASIC
         self.rate = 60
         self.mod = 0
         self.pitch_bend = 0x2000
@@ -223,8 +260,11 @@ class KeyboardConfiguration:
         # multi sequencer attributes
         
         self.multi_sequence_index = [-1]*16
+        self.last_multi_seq_key_played = [-1]*16
         self.multi_sequence_notes = [[]]*16
         self.multi_sequence_highlighted = 0
+        self.multi_sequence_global_index = 0
+        self.multi_sequence_index_boundary = 0
         self.loading_multi_seq = False        
         self.loading_multi_seq_number = -1
         
@@ -297,6 +337,26 @@ class KeyboardConfiguration:
                     elif ((counter+(((10-per_tenth)/10)*(240*(t_div/24))))%(t_div*10)) == 0:            
                         if self.last_arp_key_played != -1:
                             self.__send_note_off(self.last_arp_key_played)
+            elif self.mode == Mode.MULTISEQUENCER:
+                if self.play_mode == PlayMode.PLAYING:
+                    counter = self.play_note_timer_tenth_counter
+                    t_div = timeDivToTimeSplit(self.time_div)
+                    per_tenth = self.player_note_timer_gate_pertenth                    
+                    if (counter % (t_div*10)) == 0:                        
+                        for i in range(0,16):
+                            if len(self.multi_sequence_notes[i]) != 0:
+                                correct_key = self.multi_sequence_notes[i][self.multi_sequence_global_index % len(self.multi_sequence_notes[i])]
+                                self.last_multi_seq_key_played[i] = correct_key
+                                self.__send_note_midi_on(correct_key, i+1)
+                            else:
+                                self.last_multi_seq_key_played[i] = -1
+                            
+                        self.multi_sequence_global_index = (self.multi_sequence_global_index+1)%self.multi_sequence_index_boundary  
+                    elif ((counter+(((10-per_tenth)/10)*(240*(t_div/24))))%(t_div*10)) == 0:
+                        for i in range(0,16): 
+                            self.__send_note_midi_off(self.last_multi_seq_key_played[i], i+1)
+                            self.last_multi_seq_key_played[i] = -1
+
                             
             if self.request_midi_resume == True and self.play_note_timer_tenth_counter%240 == 0:
                 self.request_midi_resume = False
@@ -485,14 +545,20 @@ class KeyboardConfiguration:
                         self.arp_notes.remove(note)
 
 
-    def __send_note_on(self, note):
-        if note != -1:
-            self.uart.write(ustruct.pack("bbb",0x90+self.midi_channel,note,127))
-            self.led.value(1)
+    def __send_note_on(self, note):        
+        self.__send_note_midi_on(note,self.midi_channel)
 
     def __send_note_off(self, note):
+        self.__send_note_midi_off(note,self.midi_channel)
+            
+    def __send_note_midi_on(self, note, midi_channel):
         if note != -1:
-            self.uart.write(ustruct.pack("bbb",0x80+self.midi_channel,note,0))
+            self.uart.write(ustruct.pack("bbb",0x90+midi_channel,note,127))
+            self.led.value(1)
+
+    def __send_note_midi_off(self, note, midi_channel):
+        if note != -1:
+            self.uart.write(ustruct.pack("bbb",0x80+midi_channel,note,0))
             self.led.value(0)
         
     def __send_all_note_off(self):
@@ -560,8 +626,12 @@ class KeyboardConfiguration:
             if self.last_arp_key_played != -1:
                 self.__send_note_off(self.last_arp_key_played)
             self.last_arp_key_played = -1
-            
-        self.display()
+        elif self.mode == Mode.MULTISEQUENCER:
+            self.multi_sequence_global_index = 0
+            for i in range(0,16):                            
+                self.__send_note_midi_off(self.last_multi_seq_key_played[i], i+1) #i+1 cause midi channel start on 1
+                self.last_multi_seq_key_played[i] = -1 
+        self.display()  
         
     def pauseplay_pressed(self):
         print("pausePlay")
@@ -607,9 +677,23 @@ class KeyboardConfiguration:
                 if self.last_arp_key_played != -1:
                     self.__send_note_off(self.last_arp_key_played)
                 self.last_arp_key_played = -1
-       
-            
+        elif self.mode == Mode.MULTISEQUENCER:
+            if self.multi_sequence_index_boundary != 0:
+                if self.play_mode != PlayMode.PLAYING:
+                    if self.play_mode == PlayMode.PAUSING:
+                        self.request_midi_resume = True
+                    else:
+                        self.request_midi_playing = True
+                    self.play_mode = PlayMode.PLAYING
+                    self.upadate_timer_frequency()
+                else:
+                    self.__send_midi_stop()
+                    self.play_mode = PlayMode.PAUSING
+                    for i in range(0,16):                            
+                        self.__send_note_midi_off(self.last_multi_seq_key_played[i], i+1) #i+1 cause midi channel start on 1
+                        self.last_multi_seq_key_played[i] = -1            
         self.display()
+        
         
     def rec_pressed(self):
         if self.mode == Mode.BASIC:
@@ -741,6 +825,22 @@ class KeyboardConfiguration:
                     self.multi_sequence_notes[self.multi_sequence_highlighted] = self.load_sequence_file(self.loading_multi_seq_number, False)
                     print(self.multi_sequence_notes)
                     self.multi_sequence_index[self.multi_sequence_highlighted] = self.loading_multi_seq_number
+                ppcm_index_list = []
+                print("a")
+                for sequence_notes in self.multi_sequence_notes:
+                    if len(sequence_notes) > 1:
+                        ppcm_index_list.append(len(sequence_notes))
+                
+                print("b")
+                if len(ppcm_index_list) == 0:
+                    self.multi_sequence_index_boundary = 0
+                else:
+                    self.multi_sequence_index_boundary = ppcm(ppcm_index_list)
+                    
+                print("c")
+                print("-"*15)
+                print(self.multi_sequence_index_boundary)
+                print("-"*15)
                 
                 
                 self.loading_multi_seq_number = -1
