@@ -267,6 +267,7 @@ class KeyboardConfiguration:
         self.multi_sequence_index_boundary = 0
         self.loading_multi_seq = False        
         self.loading_multi_seq_number = -1
+        self.keyboard_play_index = -1
         
         # gate lenght attributes
         self.changing_gate_length = False
@@ -458,7 +459,12 @@ class KeyboardConfiguration:
         elif self.mode == Mode.ARPEGIATOR:
             self.arp_mode = (self.arp_mode-1)%8
             self.display()
-
+        elif self.mode == Mode.MULTISEQUENCER: #TODO
+            if self.keyboard_play_index == self.multi_sequence_highlighted:
+                self.keyboard_play_index = -1
+            else:                
+                self.keyboard_play_index = self.multi_sequence_highlighted
+            self.display()
     
     def set_rate_potentiometer(self, pot_value):
         old_rate = self.rate
@@ -525,7 +531,10 @@ class KeyboardConfiguration:
                     if self.arp_number_note_pressed == 1:
                         self.arp_notes = []
                     self.arp_notes.append(note)
-                
+        elif self.mode == Mode.MULTISEQUENCER:
+            if self.keyboard_play_index != -1:
+                self.__send_note_midi_on(note, self.keyboard_play_index+1) #+1 since midi channel start to 1
+
     def note_off(self, note):
         if self.mode == Mode.BASIC:
             self.__send_note_off(note)
@@ -543,6 +552,9 @@ class KeyboardConfiguration:
                 if self.hold == False:
                     if note in self.arp_notes:
                         self.arp_notes.remove(note)
+        elif self.mode == Mode.MULTISEQUENCER:
+            if self.keyboard_play_index != -1:
+                self.__send_note_midi_off(note, self.keyboard_play_index+1) #+1 since midi channel start to 1
 
 
     def __send_note_on(self, note):        

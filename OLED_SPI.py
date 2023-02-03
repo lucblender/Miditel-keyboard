@@ -2,6 +2,7 @@ from machine import Pin,SPI
 import framebuf
 import time
 from keyboardConfiguration import *
+import arial6
 import arial8
 import arial10
 import arial35
@@ -54,6 +55,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
         
         self.keyboard_config = keyboard_config
         
+        self.font_writer_arial6 = writer.Writer(self, arial6)
         self.font_writer_arial8 = writer.Writer(self, arial8)
         self.font_writer_arial10 = writer.Writer(self, arial10)
         self.font_writer_arial35 = writer.Writer(self, arial35)
@@ -382,6 +384,8 @@ class OLED_1inch3(framebuf.FrameBuffer):
             for y in range(0,2):
                 for x in range(0,8):
                     index = 8*y + x
+                    
+                    
                     if index == self.keyboard_config.multi_sequence_highlighted:                        
                         self.fill_rect(0+x*16, 17+16*y,16,16,self.white)
                         self.rect(0+x*16, 17+16*y,16,16,self.black)
@@ -409,7 +413,12 @@ class OLED_1inch3(framebuf.FrameBuffer):
                         else:
                             index_str = '{:02d}'.format(self.keyboard_config.multi_sequence_index[index])
                             self.font_writer_arial10.text(index_str,2+x*16, 21+16*y)
-        
+                            
+                    if index == self.keyboard_config.keyboard_play_index:
+                        if index == self.keyboard_config.multi_sequence_highlighted:  
+                            self.font_writer_arial6.text("K",11+x*16, 27+16*y,True)
+                        else:        
+                            self.font_writer_arial6.text("K",11+x*16, 27+16*y,False)           
         self.show()    
             
             
