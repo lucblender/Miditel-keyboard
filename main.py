@@ -30,16 +30,18 @@ last_key_update = time.time()
 
 # 8 9  10 11 12
 #22 21 20 19 18 
-col_list=[15, 20, 21, 22, 7, 6, 5, 0]
-row_list=[14, 13, 18, 19, 4, 3, 2, 1]
+col_list_pin=[15, 20, 21, 22, 7, 6, 5, 0]
+row_list_pin=[14, 13, 18, 19, 4, 3, 2, 1]
+row_list = [0,0,0,0,0,0,0,0]
+col_list = [0,0,0,0,0,0,0,0]
 
 for x in range(0,ROW_NUMBER):
-    row_list[x]=Pin(row_list[x], Pin.OUT)
+    row_list[x]=Pin(row_list_pin[x], Pin.OUT)
     row_list[x].value(1)
 
 
 for x in range(0,COL_NUMBER):
-    col_list[x] = Pin(col_list[x], Pin.IN, Pin.PULL_UP)
+    col_list[x] = Pin(col_list_pin[x], Pin.IN, Pin.PULL_UP)
 
 key_map= [
     ["up","t","g",".","b","guide","Fnct","connexion fin"],
@@ -80,10 +82,12 @@ def KeypadRead(cols,rows):
     key_state = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
         
     for r in range(0, ROW_NUMBER):
+        #put pin as output
+        Pin(row_list_pin[r], Pin.OUT)
         rows[r].value(0)
         for c in range(0,COL_NUMBER):
-            if cols[c].value() == 0:
-                key_state[r][c] = 1
+            if cols[c].value() == 0:       
+                    key_state[r][c] = 1
 
             if(key_state[r][c] != key_state_old[r][c]):
                 last_key_update = time.time()
@@ -100,9 +104,9 @@ def KeypadRead(cols,rows):
                     if(note != 0):
                         keyboard_config.note_on(note+keyboard_config.octave_offset*12)
                     else:                        
-                        customKeyOn(key)
-        
-        rows[r].value(1)
+                        customKeyOn(key)        
+        #put pin as input to have high z
+        Pin(row_list_pin[r], Pin.IN)
         
     for x in range(0, COL_NUMBER):
         for y in range(0, ROW_NUMBER):
