@@ -30,10 +30,15 @@ last_key_update = time.time()
 
 # 8 9  10 11 12
 #22 21 20 19 18 
+
 col_list_pin=[15, 20, 21, 22, 7, 6, 5, 0]
 row_list_pin=[14, 13, 18, 19, 4, 3, 2, 1]
+#invertedd col_list_pin=[0,5,6,7,22,21,20,15]
+#inverted row_list_pin=[1,2,3,4,19,18,13,14]
 row_list = [0,0,0,0,0,0,0,0]
 col_list = [0,0,0,0,0,0,0,0]
+
+smooth_rate_potentiometer = -1
 
 for x in range(0,ROW_NUMBER):
     row_list[x]=Pin(row_list_pin[x], Pin.OUT)
@@ -95,7 +100,7 @@ def KeypadRead(cols,rows):
                     OLED.reset_screensaver_mode()
                 key=key_map[r][c]
                 note=note_map[r][c]
-                if key_state[r][c] == 0:                          
+                if key_state[r][c] == 0:
                     if(note != 0):
                         keyboard_config.note_off(note+keyboard_config.octave_offset*12)
                     else:
@@ -176,12 +181,17 @@ if boot_exit_button.value() == 1:
                     OLED.update_screensaver()
                     index = 0
             key=KeypadRead(col_list, row_list)
-            keyboard_config.set_rate_potentiometer(rate_potentiometer.read_u16())
+            if smooth_rate_potentiometer == -1:
+                smooth_rate_potentiometer = (65536-rate_potentiometer.read_u16())
+            else:
+                smooth_rate_potentiometer = smooth_rate_potentiometer*0.9 + 0.1*(65536-rate_potentiometer.read_u16())
+            keyboard_config.set_rate_potentiometer(smooth_rate_potentiometer)
             keyboard_config.set_pitch_potentiometer(pitch_potentiometer.read_u16())
             keyboard_config.set_mod_potentiometer(mod_potentiometer.read_u16())
     except Exception as e:
         append_error(e)
 else:
+    keyboard_config.deinit_timer()
     OLED.display_helixbyte()
     time.sleep(0.5)
     OLED.display_programming_mode()

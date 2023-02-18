@@ -5,12 +5,8 @@ from keyboardConfiguration import *
 import arial6
 import arial8
 import arial10
-import arial35
-import arial_50
-import courier20
 import font10
 import font6
-import freesans20
 import writer
 from random import randrange
 
@@ -58,12 +54,8 @@ class OLED_1inch3(framebuf.FrameBuffer):
         self.font_writer_arial6 = writer.Writer(self, arial6)
         self.font_writer_arial8 = writer.Writer(self, arial8)
         self.font_writer_arial10 = writer.Writer(self, arial10)
-        self.font_writer_arial35 = writer.Writer(self, arial35)
-        self.font_writer_arial_50 = writer.Writer(self, arial_50)
-        self.font_writer_courier20 = writer.Writer(self, courier20)
         self.font_writer_font10 = writer.Writer(self, font10)
         self.font_writer_font6 = writer.Writer(self, font6)
-        self.font_writer_freesans20 = writer.Writer(self, freesans20)
         
         self.fbuf_play = pict_to_fbuff('play.pbm', 9, 9)   
         self.fbuf_pause = pict_to_fbuff('pause.pbm', 9, 9)

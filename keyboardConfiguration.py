@@ -276,7 +276,7 @@ class KeyboardConfiguration:
         self.led = Pin(25,machine.Pin.OUT)
         
         self.play_note_timer = Timer(-1)
-        self.upadate_timer_frequency()
+        self.update_timer_frequency()
         self.play_note_timer_tenth_counter = 0
         self.player_note_timer_gate_pertenth = 5
         self.oled_display = None
@@ -381,8 +381,15 @@ class KeyboardConfiguration:
         except Exception as e:
             append_error(e)
         
-    def upadate_timer_frequency(self):
-        self.play_note_timer.init(period=int(((60/self.rate)*1000)/240), mode=Timer.PERIODIC, callback=self.timer_callback)
+    def update_timer_frequency(self):
+        period = (((60/self.rate)*1000)/240) 
+        freq = 1/period
+        self.play_note_timer.deinit()
+        #self.play_note_timer.init(period=int(((60/self.rate)*1000)/240), mode=Timer.PERIODIC, callback=self.timer_callback)
+        self.play_note_timer.init(freq = freq*1000, mode=Timer.PERIODIC, callback=self.timer_callback)
+        
+    def deinit_timer(self):        
+        self.play_note_timer.deinit()
         
     def incr_octave_offset(self):
         self.octave_offset += 1
@@ -468,10 +475,10 @@ class KeyboardConfiguration:
     
     def set_rate_potentiometer(self, pot_value):
         old_rate = self.rate
-        new_rate = int((pot_value/65536) * (MAX_BPM-MIN_BPM) + MIN_BPM)
+        new_rate = ((pot_value/65536) * (MAX_BPM-MIN_BPM) + MIN_BPM)
         
-        if abs(new_rate- old_rate)>2:
-            self.rate = new_rate
+        if abs(new_rate- old_rate)>0.7:
+            self.rate = int(new_rate)
             self.upadate_timer_frequency()
             self.display()
             
@@ -654,7 +661,6 @@ class KeyboardConfiguration:
                 else:
                     self.request_midi_playing = True
                 self.play_mode = PlayMode.PLAYING
-                self.upadate_timer_frequency()
             else:
                 self.__send_midi_stop()
                 self.play_mode = PlayMode.PAUSING
@@ -668,7 +674,6 @@ class KeyboardConfiguration:
                     else:
                         self.request_midi_playing = True
                     self.play_mode = PlayMode.PLAYING
-                    self.upadate_timer_frequency()
             else:
                 self.__send_midi_stop()
                 self.play_mode = PlayMode.PAUSING
@@ -682,7 +687,6 @@ class KeyboardConfiguration:
                 else:
                     self.request_midi_playing = True
                 self.play_mode = PlayMode.PLAYING
-                self.upadate_timer_frequency()
             else:
                 self.__send_midi_stop()
                 self.play_mode = PlayMode.PAUSING
@@ -697,7 +701,6 @@ class KeyboardConfiguration:
                     else:
                         self.request_midi_playing = True
                     self.play_mode = PlayMode.PLAYING
-                    self.upadate_timer_frequency()
                 else:
                     self.__send_midi_stop()
                     self.play_mode = PlayMode.PAUSING
@@ -937,6 +940,7 @@ class KeyboardConfiguration:
         return to_return_seq_notes
         
     def save_sequence_file(self, sequence_number):
+        self.play_note_timer.deinit()
         sequence_file = open("seq_"+str(sequence_number)+".csv", "w")
         line = ""
         for x in self.seq_notes:
@@ -944,4 +948,5 @@ class KeyboardConfiguration:
         line = line[:-1]
         sequence_file.write(line)
         sequence_file.close()
+        self.update_timer_frequency()
 
