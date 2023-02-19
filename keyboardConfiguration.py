@@ -479,7 +479,7 @@ class KeyboardConfiguration:
         
         if abs(new_rate- old_rate)>0.7:
             self.rate = int(new_rate)
-            self.upadate_timer_frequency()
+            self.update_timer_frequency()
             self.display()
             
 
