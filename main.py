@@ -122,7 +122,6 @@ print("--- Ready to get user inputs ---")
     
 def customKeyOn(key):
     global octaveOffset
-    print("You pressed: "+key)
     if key == "right":
         keyboard_config.incr_octave_offset()
     elif key == "left":
@@ -161,7 +160,6 @@ def customKeyOn(key):
         keyboard_config.digit_pressed(int(key))
         
 def customKeyOff(key):
-    print("You released: "+key) 
     if key == "espace":
         keyboard_config.note_off(69) 
 
@@ -189,6 +187,7 @@ if boot_exit_button.value() == 1:
             keyboard_config.set_pitch_potentiometer(pitch_potentiometer.read_u16())
             keyboard_config.set_mod_potentiometer(mod_potentiometer.read_u16())
     except Exception as e:
+        keyboard_config.deinit_timer()
         append_error(e)
 else:
     keyboard_config.deinit_timer()

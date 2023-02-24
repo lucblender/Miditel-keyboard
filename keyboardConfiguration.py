@@ -267,7 +267,8 @@ class KeyboardConfiguration:
         
         self.multi_sequence_index = [-1]*16
         self.last_multi_seq_key_played = [-1]*16
-        self.multi_sequence_notes = [[]]*16
+        self.multi_seq_played_notes = [[] for i in range(0,16)]
+        self.multi_sequence_notes = [{LEN_INDEX:0}]*16
         self.multi_sequence_highlighted = 0
         self.multi_sequence_global_index = 0
         self.multi_sequence_index_boundary = 0
@@ -301,7 +302,7 @@ class KeyboardConfiguration:
             self.oled_display.display()
 
     def timer_callback(self, timer):
-        #try:
+        try:
             if self.mode == Mode.BASIC:
                 pass
             elif self.mode == Mode.SEQUENCER:
@@ -362,31 +363,33 @@ class KeyboardConfiguration:
                     t_div = timeDivToTimeSplit(self.time_div)
                     per_tenth = self.player_note_timer_gate_pertenth                    
                     if (counter % (t_div*10)) == 0:                        
-                        for i in range(0,16):
+                        for i in range(0,16):                            
                             if len(self.multi_sequence_notes[i]) != 0:
-                                
-                                correct_keys = self.multi_sequence_notes[i][self.multi_sequence_global_index % len(self.multi_sequence_notes[i])]
-                                
-                                if correct_keys != [[-1]]:
-                                    for x in range(0, len(correct_keys)):
-                                        if correct_keys[x][1] == 1 :
-                                            self.__send_note_midi_on( correct_keys[x][0],i+1)
-
-                            else:
-                                self.last_multi_seq_key_played[i] = -1
+                                if self.multi_sequence_notes[i][LEN_INDEX] != 0:
+                                    specific_sequence_index = self.multi_sequence_global_index % self.multi_sequence_notes[i][LEN_INDEX]
+                                    if specific_sequence_index in self.multi_sequence_notes[i]:                            
+                                        note_to_play = self.multi_sequence_notes[i][specific_sequence_index].copy()
+                                        #in the case we deleted too many note and a note is longer than the sequence:
+                                        if note_to_play[1] > self.multi_sequence_notes[i][LEN_INDEX]:
+                                            note_to_play[1] = self.multi_sequence_notes[i][LEN_INDEX]
+                                        self.__send_note_midi_on(note_to_play[0],i+1)
+                                        self.multi_seq_played_notes[i].append(note_to_play.copy())   
                             
                         self.multi_sequence_global_index = (self.multi_sequence_global_index+1)%self.multi_sequence_index_boundary  
                     elif ((counter+(((10-per_tenth)/10)*(240*(t_div/24))))%(t_div*10)) == 0:
-                        for i in range(0,16): 
-
-                            if len(self.multi_sequence_notes[i]) != 0:
-                                correct_keys = self.multi_sequence_notes[i][(self.multi_sequence_global_index) % len(self.multi_sequence_notes[i])]
-                                    
-                                if correct_keys != [[-1]]:
-                                    for x in range(0, len(correct_keys)):
-                                        if correct_keys[x][1] == 0 :
-                                            self.__send_note_midi_off( correct_keys[x][0],i+1)
-
+                        for i in range(0,16):
+                            
+                             if len(self.multi_seq_played_notes[i]) != 0:
+                                 
+                                notes_to_remove = []
+                                for seq_played_note in self.multi_seq_played_notes[i]:
+                                    seq_played_note[1] = seq_played_note[1] -1
+                                    if seq_played_note[1] <= 0:
+                                        self.__send_note_midi_off(seq_played_note[0],i+1)
+                                        notes_to_remove.append(seq_played_note)
+                                        
+                                for note_to_remove in notes_to_remove:
+                                    self.multi_seq_played_notes[i].remove(note_to_remove)
                             
             if self.request_midi_resume == True and self.play_note_timer_tenth_counter%240 == 0:
                 self.request_midi_resume = False
@@ -407,8 +410,9 @@ class KeyboardConfiguration:
                     self.rate_led.off()
                     
             self.play_note_timer_tenth_counter = (self.play_note_timer_tenth_counter+1)%480
-        #except Exception as e:
-           # append_error(e)
+        except Exception as e:
+            self.deinit_timer()
+            append_error(e)
         
     def update_timer_frequency(self):
         period = (((60/self.rate)*1000)/240) 
@@ -573,7 +577,8 @@ class KeyboardConfiguration:
                     if self.arp_number_note_pressed == 1:
                         self.arp_notes = []
                     self.arp_notes.append(note)
-        elif self.mode == Mode.MULTISEQUENCER:
+        elif self.mode == Mode.MULTISEQUENCER:             
+            
             if self.keyboard_play_index != -1:
                 self.__send_note_midi_on(note, self.keyboard_play_index+1) #+1 since midi channel start to 1
 
@@ -716,7 +721,12 @@ class KeyboardConfiguration:
                 self.__send_note_off(self.last_arp_key_played)
             self.last_arp_key_played = -1
         elif self.mode == Mode.MULTISEQUENCER:
-            self.multi_sequence_global_index = 0
+            self.multi_sequence_global_index = 0                                       
+            for i in range(0,16):                            
+                if len(self.multi_seq_played_notes[i]) != 0:                                 
+                    for seq_played_note in self.multi_seq_played_notes[i]:
+                        self.__send_note_midi_off(seq_played_note[0],i+1)
+                    self.multi_seq_played_notes[i] = []  
             for i in range(0,16):                            
                 self.__send_all_note_midi_off(i+1) #i+1 cause midi channel start on 1
         self.display()  
@@ -773,7 +783,12 @@ class KeyboardConfiguration:
                     self.play_mode = PlayMode.PLAYING
                 else:
                     self.__send_midi_stop()
-                    self.play_mode = PlayMode.PAUSING
+                    self.play_mode = PlayMode.PAUSING                                               
+                    for i in range(0,16):                            
+                        if len(self.multi_seq_played_notes[i]) != 0:                                 
+                            for seq_played_note in self.multi_seq_played_notes[i]:
+                                self.__send_note_midi_off(seq_played_note[0],i+1)
+                            self.multi_seq_played_notes[i] = []  
                     for i in range(0,16):                            
                         self.__send_all_note_midi_off(i+1) #i+1 cause midi channel start on 1      
         self.display()
@@ -907,15 +922,16 @@ class KeyboardConfiguration:
             if  self.loading_multi_seq == True:
                 self.loading_multi_seq = False
                 if self.loading_multi_seq_number == -1:
-                    self.multi_sequence_notes[self.multi_sequence_highlighted] = []
+                    self.multi_sequence_notes[self.multi_sequence_highlighted] = {LEN_INDEX:0}
                     self.multi_sequence_index[self.multi_sequence_highlighted] = -1
                 else:
                     self.multi_sequence_notes[self.multi_sequence_highlighted] = self.load_sequence_file(self.loading_multi_seq_number, False)
                     self.multi_sequence_index[self.multi_sequence_highlighted] = self.loading_multi_seq_number
                 ppcm_index_list = []
+                
                 for sequence_notes in self.multi_sequence_notes:
-                    if len(sequence_notes) > 1:
-                        ppcm_index_list.append(len(sequence_notes))
+                    if sequence_notes[LEN_INDEX] > 1:
+                        ppcm_index_list.append(sequence_notes[LEN_INDEX])
                 
                 if len(ppcm_index_list) == 0:
                     self.multi_sequence_index_boundary = 0
@@ -985,7 +1001,7 @@ class KeyboardConfiguration:
         
     def load_sequence_file(self, sequence_number, stop = True):
         #stop timer before loading
-        to_return_seq_notes = {}
+        to_return_seq_notes = {LEN_INDEX:0}
         try:
             self.play_note_timer.deinit()
             sequence_file = open("seq_"+str(sequence_number)+".csv", "r")
@@ -999,7 +1015,7 @@ class KeyboardConfiguration:
         except Exception as e:
             print("couldn't load sequence n°",sequence_number)
             self.seq_len = 0
-            to_return_seq_notes = {}
+            to_return_seq_notes = {LEN_INDEX:0}
         self.current_seq_index = 0
         if self.seq_len == 0 and stop == True:
             self.stop_pressed()
