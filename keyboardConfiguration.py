@@ -271,7 +271,12 @@ class KeyboardConfiguration:
         self.multi_sequence_notes = [{LEN_INDEX:0}]*16
         self.multi_sequence_highlighted = 0
         self.multi_sequence_global_index = 0
-        self.multi_sequence_index_boundary = 0
+        self.multi_sequence_global_index_tst = 0
+        self.multi_sequence_index_boundary = 0        
+        self.multi_sequence_time_div = [TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH_T,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,
+                                        TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH_T,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,
+                                        TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH_T,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,
+                                        TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH_T,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH]
         self.loading_multi_seq = False        
         self.loading_multi_seq_number = -1
         self.keyboard_play_index = -1
@@ -357,29 +362,38 @@ class KeyboardConfiguration:
                             self.current_arp_index = (self.current_arp_index+1)%len(arp_notes_mode)
                     elif ((counter+(((10-per_tenth)/10)*(240*(t_div/24))))%(t_div*10)) == 0:            
                         if self.last_arp_key_played != -1:
-                            self.__send_note_off(self.last_arp_key_played)
+                            self.__senplay_note_timer_tenth_counterd_note_off(self.last_arp_key_played)
             elif self.mode == Mode.MULTISEQUENCER:
+                
                 if self.play_mode == PlayMode.PLAYING:
                     counter = self.play_note_timer_tenth_counter
-                    t_div = timeDivToTimeSplit(self.time_div)
-                    per_tenth = self.player_note_timer_gate_pertenth                    
-                    if (counter % (t_div*10)) == 0:                        
-                        for i in range(0,16):                            
+                    per_tenth = self.player_note_timer_gate_pertenth
+
+                     
+                    for i in range(0,16):
+                        t_div = timeDivToTimeSplit(self.multi_sequence_time_div[i])
+                        #t_div = timeDivToTimeSplit(self.time_div)
+                        if (counter % (t_div*10)) == 0:                             
                             if len(self.multi_sequence_notes[i]) != 0:
                                 if self.multi_sequence_notes[i][LEN_INDEX] != 0:
-                                    specific_sequence_index = self.multi_sequence_global_index % self.multi_sequence_notes[i][LEN_INDEX]
-                                    if specific_sequence_index in self.multi_sequence_notes[i]:                            
-                                        note_to_play = self.multi_sequence_notes[i][specific_sequence_index].copy()
+                                    #specific_sequence_index = self.multi_sequence_global_index % self.multi_sequence_notes[i][LEN_INDEX]
+                                    specific_sequence_index_tst = int((self.multi_sequence_global_index_tst/t_div) % self.multi_sequence_notes[i][LEN_INDEX])
+                                    #print("a: ", specific_sequence_index, "b: ",self.multi_sequence_global_index, "c: ",specific_sequence_index_tst, "d: ",self.multi_sequence_global_index_tst)
+                                    
+                                    if specific_sequence_index_tst in self.multi_sequence_notes[i]:                            
+                                        note_to_play = self.multi_sequence_notes[i][specific_sequence_index_tst].copy()
                                         #in the case we deleted too many note and a note is longer than the sequence:
                                         if note_to_play[1] > self.multi_sequence_notes[i][LEN_INDEX]:
                                             note_to_play[1] = self.multi_sequence_notes[i][LEN_INDEX]
                                         self.__send_note_midi_on(note_to_play[0],i+1)
                                         self.multi_seq_played_notes[i].append(note_to_play.copy())   
                             
-                        self.multi_sequence_global_index = (self.multi_sequence_global_index+1)%self.multi_sequence_index_boundary  
-                    elif ((counter+(((10-per_tenth)/10)*(240*(t_div/24))))%(t_div*10)) == 0:
-                        for i in range(0,16):
-                            
+                        #self.multi_sequence_global_index = (self.multi_sequence_global_index+1)%self.multi_sequence_index_boundary
+                    for i in range(0,16):
+                        t_div = timeDivToTimeSplit(self.multi_sequence_time_div[i])
+                        #t_div = timeDivToTimeSplit(self.time_div)
+                        if ((counter+(((10-per_tenth)/10)*(240*(t_div/24))))%(t_div*10)) == 0:
+
                              if len(self.multi_seq_played_notes[i]) != 0:
                                  
                                 notes_to_remove = []
@@ -391,6 +405,10 @@ class KeyboardConfiguration:
                                         
                                 for note_to_remove in notes_to_remove:
                                     self.multi_seq_played_notes[i].remove(note_to_remove)
+
+
+                    if (counter % (10)) == 0:
+                        self.multi_sequence_global_index_tst = (self.multi_sequence_global_index_tst+1)
                             
             if self.request_midi_resume == True and self.play_note_timer_tenth_counter%240 == 0:
                 self.request_midi_resume = False
@@ -643,13 +661,13 @@ class KeyboardConfiguration:
     # uart.write(....) there is always midi_channel - 1
     def __send_note_midi_on(self, note, midi_channel):
         if note != -1:
-            print("__send_note_midi_on", note, midi_channel)
+            #print("__send_note_midi_on", note, midi_channel)
             self.uart.write(ustruct.pack("bbb",0x90+(midi_channel-1),note,127))
             self.led.value(1)
 
     def __send_note_midi_off(self, note, midi_channel):
         if note != -1:
-            print("__send_note_midi_off", note, midi_channel)
+            #print("__send_note_midi_off", note, midi_channel)
             self.uart.write(ustruct.pack("bbb",0x80+(midi_channel-1),note,0))
             self.led.value(0)
         
@@ -728,7 +746,8 @@ class KeyboardConfiguration:
                 self.__send_note_off(self.last_arp_key_played)
             self.last_arp_key_played = -1
         elif self.mode == Mode.MULTISEQUENCER:
-            self.multi_sequence_global_index = 0                                       
+            self.multi_sequence_global_index = 0        
+            self.multi_sequence_global_index_tst = 0                                       
             for i in range(0,16):                            
                 if len(self.multi_seq_played_notes[i]) != 0:                                 
                     for seq_played_note in self.multi_seq_played_notes[i]:
@@ -739,6 +758,7 @@ class KeyboardConfiguration:
         self.display()  
         
     def pauseplay_pressed(self):
+        self.play_note_timer_tenth_counter = 0
         if self.mode == Mode.BASIC:
             if self.play_mode != PlayMode.PLAYING:
                 if self.play_mode == PlayMode.PAUSING:
@@ -821,7 +841,12 @@ class KeyboardConfiguration:
             self.midi_change_channel = False
             self.loading_seq = False
             self.changing_gate_length = False
-        self.load_time_div = self.time_div
+            
+            
+        if self.mode == Mode.MULTISEQUENCER:
+            self.load_time_div = self.multi_sequence_time_div[self.multi_sequence_highlighted]
+        else:
+            self.load_time_div = self.time_div
         self.display()
 
     def load_seq_pressed(self):
@@ -888,14 +913,15 @@ class KeyboardConfiguration:
                 if self.loading_multi_seq_number >99:
                     self.loading_multi_seq_number = 99   
             else:
-                if digit == 2: #up
-                    self.multi_sequence_highlighted = (self.multi_sequence_highlighted+8)%16
-                elif digit == 6: #right
-                    self.multi_sequence_highlighted = (self.multi_sequence_highlighted+1)%16
-                elif digit == 4: #left
-                    self.multi_sequence_highlighted = (self.multi_sequence_highlighted-1)%16
-                elif digit == 8: #down
-                    self.multi_sequence_highlighted = (self.multi_sequence_highlighted-8)%16
+                if self.change_time_div == False:
+                    if digit == 2: #up
+                        self.multi_sequence_highlighted = (self.multi_sequence_highlighted+8)%16
+                    elif digit == 6: #right
+                        self.multi_sequence_highlighted = (self.multi_sequence_highlighted+1)%16
+                    elif digit == 4: #left
+                        self.multi_sequence_highlighted = (self.multi_sequence_highlighted-1)%16
+                    elif digit == 8: #down
+                        self.multi_sequence_highlighted = (self.multi_sequence_highlighted-8)%16
             
             self.display()
         
@@ -935,10 +961,11 @@ class KeyboardConfiguration:
                     self.multi_sequence_notes[self.multi_sequence_highlighted] = self.load_sequence_file(self.loading_multi_seq_number, False)
                     self.multi_sequence_index[self.multi_sequence_highlighted] = self.loading_multi_seq_number
                 ppcm_index_list = []
-                
+                index = 0
                 for sequence_notes in self.multi_sequence_notes:
                     if sequence_notes[LEN_INDEX] > 1:
-                        ppcm_index_list.append(sequence_notes[LEN_INDEX])
+                        ppcm_index_list.append(sequence_notes[LEN_INDEX]*timeDivToTimeSplit(self.multi_sequence_time_div[index]))
+                    index = index + 1
                 
                 if len(ppcm_index_list) == 0:
                     self.multi_sequence_index_boundary = 0
@@ -953,8 +980,11 @@ class KeyboardConfiguration:
                 self.changing_gate_length = False                          
                 self.display()
                 
-        if self.change_time_div == True: # works in any mode 
-            self.time_div = self.load_time_div
+        if self.change_time_div == True: # works in any mode
+            if self.mode == Mode.MULTISEQUENCER:
+                self.multi_sequence_time_div[self.multi_sequence_highlighted] = self.load_time_div
+            else:
+                self.time_div = self.load_time_div
             self.change_time_div = False
             self.display()
 

@@ -292,12 +292,18 @@ class OLED_1inch3(framebuf.FrameBuffer):
                 #TODO
                 time_div_x = 39
                 time_div_y = 51
+                
+                if self.keyboard_config.mode == Mode.MULTISEQUENCER:
+                    time_div = self.keyboard_config.multi_sequence_time_div[self.keyboard_config.multi_sequence_highlighted]
+                else:
+                    time_div = self.keyboard_config.time_div
+                    
                 if self.keyboard_config.change_time_div == True:
                     self.fill_rect(time_div_x,time_div_y,76,12,self.black)
                     time_div_str = "TimeDiv : "+timeDivToStr(self.keyboard_config.load_time_div)
                     self.font_writer_arial10.text(time_div_str,time_div_x+2, time_div_y+2)
                 else:    
-                    time_div_str = "TimeDiv : "+timeDivToStr(self.keyboard_config.time_div)
+                    time_div_str = "TimeDiv : "+timeDivToStr(time_div)
                     self.font_writer_arial10.text(time_div_str,time_div_x+2, time_div_y+2,True)
                 
             
