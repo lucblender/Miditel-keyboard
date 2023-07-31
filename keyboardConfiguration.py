@@ -313,7 +313,7 @@ class KeyboardConfiguration:
                     per_tenth = self.player_note_timer_gate_pertenth
                     
                     if (counter % (t_div*10)) == 0:
-                        if self.current_seq_index in self.seq_notes:                            
+                        if self.current_seq_index in self.seq_notes:
                             note_to_play = self.seq_notes[self.current_seq_index].copy()
                             note_to_play[0] = note_to_play[0]+(self.transpose_key-60)
                             #in the case we deleted too many note and a note is longer than the sequence:
@@ -322,6 +322,7 @@ class KeyboardConfiguration:
                             self.__send_note_on(note_to_play[0])
                             self.seq_played_notes.append(note_to_play.copy())   
                             
+                        print("self.current_seq_index", self.current_seq_index)
                         self.current_seq_index = (self.current_seq_index+1)%self.seq_len      
                     elif ((counter+(((10-per_tenth)/10)*(240*(t_div/24))))%(t_div*10)) == 0:
                         
@@ -556,6 +557,7 @@ class KeyboardConfiguration:
             if self.play_mode == PlayMode.RECORDING: # TODO
                 self.seq_current_rec_notes.append([note,0])
                 print("seq_current_rec_notes",self.seq_current_rec_notes)
+                self.__send_note_on(note)  
                 self.display()
             elif self.play_mode == PlayMode.PLAYING:
                 if self.transpose_keyboardplay_mode == True:
@@ -593,6 +595,7 @@ class KeyboardConfiguration:
                 
             elif self.play_mode == PlayMode.RECORDING:#TODO
                 #incr all note lenght
+                self.__send_note_off(note)
                 
                 self.seq_len += 1                
                 self.seq_notes[LEN_INDEX] = self.seq_len   
@@ -634,23 +637,27 @@ class KeyboardConfiguration:
     def __send_note_off(self, note):
         self.__send_note_midi_off(note,self.midi_channel)
             
+    # note on midi channel when doing uart.write:
+    # midi channel usually goes from 1 to 16 (in the whole code and display)
+    # but when sent it goes from 0 to 15, that's why when using
+    # uart.write(....) there is always midi_channel - 1
     def __send_note_midi_on(self, note, midi_channel):
         if note != -1:
             print("__send_note_midi_on", note, midi_channel)
-            self.uart.write(ustruct.pack("bbb",0x90+midi_channel,note,127))
+            self.uart.write(ustruct.pack("bbb",0x90+(midi_channel-1),note,127))
             self.led.value(1)
 
     def __send_note_midi_off(self, note, midi_channel):
         if note != -1:
             print("__send_note_midi_off", note, midi_channel)
-            self.uart.write(ustruct.pack("bbb",0x80+midi_channel,note,0))
+            self.uart.write(ustruct.pack("bbb",0x80+(midi_channel-1),note,0))
             self.led.value(0)
         
     def __send_all_note_off(self):
-        self.__send_all_note_midi_off(self.midi_channel)
+        self.__send_all_note_midi_off(self.midi_channel-1)
         
     def __send_all_note_midi_off(self,midi_channel):
-        self.uart.write(ustruct.pack("bbb",0xb0+midi_channel,123,0))
+        self.uart.write(ustruct.pack("bbb",0xb0+(midi_channel-1),123,0))
         self.led.value(0)
         
     def __send_mod_wheel(self, mod_wheel_value):
@@ -658,7 +665,7 @@ class KeyboardConfiguration:
             mod_wheel_value = 127
         elif mod_wheel_value < 0:
             mod_wheel_value = 0
-        self.uart.write(ustruct.pack("bbb",0xb0+self.midi_channel,1,mod_wheel_value))
+        self.uart.write(ustruct.pack("bbb",0xb0+(self.midi_channel-1),1,mod_wheel_value))
         
     def __send_pitch_wheel(self, pitch_wheel_value):
         if pitch_wheel_value > 0x3fff:
@@ -668,7 +675,7 @@ class KeyboardConfiguration:
         lsb = pitch_wheel_value & 0x7F 
         msb = (pitch_wheel_value >> 7) & 0x7F
         
-        self.uart.write(ustruct.pack("bbb",0xe0+self.midi_channel,lsb, msb))
+        self.uart.write(ustruct.pack("bbb",0xe0+(self.midi_channel-1),lsb, msb))
         
     def __send_midi_clock(self):
         self.uart.write(ustruct.pack("b",0xf8))
