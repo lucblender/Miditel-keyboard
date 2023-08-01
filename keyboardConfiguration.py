@@ -237,7 +237,7 @@ class KeyboardConfiguration:
         
         self.midi_change_channel = False
         self.midi_change_channel_channel = 0        
-        self.midi_channel = 3 #temporary for volca keys
+        self.midi_channel = 1
         
         # sequencer linked attributes
         #TODO
@@ -273,10 +273,10 @@ class KeyboardConfiguration:
         self.multi_sequence_global_index = 0
         self.multi_sequence_global_index_tst = 0
         self.multi_sequence_index_boundary = 0        
-        self.multi_sequence_time_div = [TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH_T,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,
-                                        TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH_T,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,
-                                        TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH_T,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,
-                                        TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH_T,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH]
+        self.multi_sequence_time_div = [TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,
+                                        TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,
+                                        TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,
+                                        TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH,TimeDiv.ONE_FOURTH]
         self.loading_multi_seq = False        
         self.loading_multi_seq_number = -1
         self.keyboard_play_index = -1
