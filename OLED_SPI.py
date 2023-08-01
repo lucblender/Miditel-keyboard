@@ -107,7 +107,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
         self.rst(1)
         time.sleep(0.001)
         self.rst(0)
-        time.sleep(0.01)
+        time.sleep(0.001)
         self.rst(1)
         
         self.write_cmd(0xAE)#turn off OLED display

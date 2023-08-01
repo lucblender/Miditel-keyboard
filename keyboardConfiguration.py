@@ -436,7 +436,7 @@ class KeyboardConfiguration:
     def update_timer_frequency(self):
         period = (((60/self.rate)*1000)/240) 
         freq = 1/period
-        self.play_note_timer.deinit()
+        #self.play_note_timer.deinit()
         #self.play_note_timer.init(period=int(((60/self.rate)*1000)/240), mode=Timer.PERIODIC, callback=self.timer_callback)
         self.play_note_timer.init(freq = freq*1000, mode=Timer.PERIODIC, callback=self.timer_callback)
         
@@ -538,8 +538,10 @@ class KeyboardConfiguration:
         
         if abs(new_rate- old_rate)>0.7:
             self.rate = int(new_rate)
-            self.update_timer_frequency()
-            self.display()
+            if old_rate != self.rate: #only refresh if rate really changed
+                print("set_rate_potentiometer")
+                self.update_timer_frequency()
+                self.display()
             
 
     def set_pitch_potentiometer(self, pot_value):# from 0 to 0x3fff, 0x2000 is the center, divided range by two on my setup
