@@ -173,12 +173,6 @@ class OLED_1inch3(framebuf.FrameBuffer):
         self.screensaver_active = True
         for i in range(0, len(self.screesaver_pixels)):
             self.screesaver_pixels[i] = [randrange(0, 128), randrange(0, 64)]
-        self.fill(self.black)
-
-        for pix in self.screesaver_pixels:
-            self.rect(pix[0], pix[1], 1, 1, self.white)
-
-        self.show()
 
     def reset_screensaver_mode(self):
         self.screensaver_active = False
