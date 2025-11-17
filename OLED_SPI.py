@@ -177,7 +177,7 @@ class OLED_1inch3(framebuf.FrameBuffer):
 
     def reset_screensaver_mode(self):
         self.screensaver_active = False
-        self.display()
+        self.need_screen_refresh()
 
     def update_screensaver(self):
 

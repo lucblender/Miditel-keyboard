@@ -8,7 +8,7 @@ from keyboardConfiguration import KeyboardConfiguration, append_error
 from OLED_SPI import OLED_1inch3
 
 from machine import freq
-freq(250_000_000,250_000_000)
+freq(250_000_000, 250_000_000)
 
 boot_exit_button = Pin(17, Pin.IN, Pin.PULL_UP)
 rate_potentiometer = machine.ADC(28)
@@ -18,7 +18,7 @@ mod_potentiometer = machine.ADC(26)
 COL_NUMBER = 8
 ROW_NUMBER = 8
 
-MAX_DELAY_BEFORE_SCREENSAVER_S = 10
+MAX_DELAY_BEFORE_SCREENSAVER_S = 300
 last_key_update = time.time()
 
 
@@ -33,90 +33,95 @@ last_key_update = time.time()
 
 
 # 8 9  10 11 12
-#22 21 20 19 18
+# 22 21 20 19 18
 
-col_list_pin=[15, 20, 21, 22, 7, 6, 5, 0]
-row_list_pin=[14, 13, 18, 19, 4, 3, 2, 1]
-#invertedd col_list_pin=[0,5,6,7,22,21,20,15]
-#inverted row_list_pin=[1,2,3,4,19,18,13,14]
-row_list = [0,0,0,0,0,0,0,0]
-col_list = [0,0,0,0,0,0,0,0]
+col_list_pin = [15, 20, 21, 22, 7, 6, 5, 0]
+row_list_pin = [14, 13, 18, 19, 4, 3, 2, 1]
+# invertedd col_list_pin=[0,5,6,7,22,21,20,15]
+# inverted row_list_pin=[1,2,3,4,19,18,13,14]
+row_list = [0, 0, 0, 0, 0, 0, 0, 0]
+col_list = [0, 0, 0, 0, 0, 0, 0, 0]
 
 smooth_rate_potentiometer = -1
 smooth_mod_potentiometer = -1
 smooth_pitch_potentiometer = -1
 
-for x in range(0,ROW_NUMBER):
-    row_list[x]=Pin(row_list_pin[x], Pin.OUT)
+for x in range(0, ROW_NUMBER):
+    row_list[x] = Pin(row_list_pin[x], Pin.OUT)
     row_list[x].value(1)
 
 
-for x in range(0,COL_NUMBER):
+for x in range(0, COL_NUMBER):
     col_list[x] = Pin(col_list_pin[x], Pin.IN, Pin.PULL_UP)
 
-key_map= [
-    ["up","t","g",".","b","guide","Fnct","connexion fin"],
-    ["correction","e","d","Esc","c","z","s","x"],
-    ["annulation","r","f",",","v","a","q","w"],
-    ["down","y","h","'","n","sommaire","Ctrl","espace"],
-    ["shift",";","*","suite","0","u","j","#"],
-    ["left","-","7","retour","8","i","k","9"],
-    ["right",":","4","envoi","5","o","l","6"],
-    ["enter","?","1","répétition","2","p","m","3"]
+key_map = [
+    ["up", "t", "g", ".", "b", "guide", "Fnct", "connexion fin"],
+    ["correction", "e", "d", "Esc", "c", "z", "s", "x"],
+    ["annulation", "r", "f", ",", "v", "a", "q", "w"],
+    ["down", "y", "h", "'", "n", "sommaire", "Ctrl", "espace"],
+    ["shift", ";", "*", "suite", "0", "u", "j", "#"],
+    ["left", "-", "7", "retour", "8", "i", "k", "9"],
+    ["right", ":", "4", "envoi", "5", "o", "l", "6"],
+    ["enter", "?", "1", "répétition", "2", "p", "m", "3"]
 ]
 
-note_map= [
-    [0 ,65,67,60,69,0 ,0 ,0 ],
-    [0 ,59,61,54,63,56,58,60],
-    [0 ,62,64,57,66,53,55,57],
-    [0 ,68,70,63,72,0 ,52,0 ],
-    [54,66,0 ,0 ,0 ,71,73,0 ],
-    [0 ,69,0 ,0 ,0 ,74,76,0 ],
-    [0 ,72,0 ,0 ,0 ,77,79,0 ],
-    [0 ,75,0 ,0 ,0 ,80,82,0 ]
+note_map = [
+    [0, 65, 67, 60, 69, 0, 0, 0],
+    [0, 59, 61, 54, 63, 56, 58, 60],
+    [0, 62, 64, 57, 66, 53, 55, 57],
+    [0, 68, 70, 63, 72, 0, 52, 0],
+    [54, 66, 0, 0, 0, 71, 73, 0],
+    [0, 69, 0, 0, 0, 74, 76, 0],
+    [0, 72, 0, 0, 0, 77, 79, 0],
+    [0, 75, 0, 0, 0, 80, 82, 0]
 ]
 
-key_state = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
-key_state_old = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
+key_state = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [
+    0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]]
+key_state_old = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [
+    0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]]
 
 keyboard_config = KeyboardConfiguration()
 OLED = OLED_1inch3(keyboard_config)
 keyboard_config.set_display(OLED)
 
 
-def KeypadRead(cols,rows):
+def KeypadRead(cols, rows):
     global key_state
     global key_state_old
     global last_key_update
     global OLED
 
-    key_state = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
+    key_state = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [
+        0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]]
 
     for r in range(0, ROW_NUMBER):
-        #put pin as output
+        # put pin as output
         Pin(row_list_pin[r], Pin.OUT)
         rows[r].value(0)
-        for c in range(0,COL_NUMBER):
+        for c in range(0, COL_NUMBER):
             if cols[c].value() == 0:
-                    key_state[r][c] = 1
+                key_state[r][c] = 1
 
-            if(key_state[r][c] != key_state_old[r][c]):
+            if (key_state[r][c] != key_state_old[r][c]):
                 last_key_update = time.time()
                 if OLED.is_screensaver() == True:
                     OLED.reset_screensaver_mode()
-                key=key_map[r][c]
-                note=note_map[r][c]
+                key = key_map[r][c]
+                note = note_map[r][c]
                 if key_state[r][c] == 0:
-                    if(note != 0):
-                        keyboard_config.note_off(note+keyboard_config.octave_offset*12)
+                    if (note != 0):
+                        keyboard_config.note_off(
+                            note+keyboard_config.octave_offset*12)
                     else:
                         customKeyOff(key)
                 else:
-                    if(note != 0):
-                        keyboard_config.note_on(note+keyboard_config.octave_offset*12)
+                    if (note != 0):
+                        keyboard_config.note_on(
+                            note+keyboard_config.octave_offset*12)
                     else:
                         customKeyOn(key)
-        #put pin as input to have high z
+        # put pin as input to have high z
         Pin(row_list_pin[r], Pin.IN)
 
     for x in range(0, COL_NUMBER):
@@ -125,6 +130,7 @@ def KeypadRead(cols,rows):
 
 
 print("--- Ready to get user inputs ---")
+
 
 def customKeyOn(key):
     global octaveOffset
@@ -161,26 +167,29 @@ def customKeyOn(key):
     elif key == "connexion fin":
         keyboard_config.change_time_div_pressed()
     elif key == "espace":
-        keyboard_config.note_on(69)#play A4 440Hz
+        keyboard_config.note_on(69)  # play A4 440Hz
     elif key.isdigit():
         keyboard_config.digit_pressed(int(key))
+
 
 def customKeyOff(key):
     if key == "espace":
         keyboard_config.note_off(69)
+
 
 def refresh_screen_loop():
     global OLED
     index = 0
     while True:
         if OLED.is_screensaver() == True:
-            index+=1
-            if index%16== True:
+            index += 1
+            if index % 16 == True:
                 OLED.update_screensaver()
                 index = 0
-        elif(OLED.need_refresh_flag == True):
+        elif (OLED.need_refresh_flag == True):
             OLED.display()
         time.sleep(0.01)
+
 
 if boot_exit_button.value() == 1:
     try:
@@ -195,22 +204,26 @@ if boot_exit_button.value() == 1:
             if time.time() - last_key_update > MAX_DELAY_BEFORE_SCREENSAVER_S and OLED.is_screensaver() == False:
                 OLED.set_screensaver_mode()
 
-            key=KeypadRead(col_list, row_list)
+            key = KeypadRead(col_list, row_list)
             if smooth_rate_potentiometer == -1:
-                smooth_rate_potentiometer = (65536-rate_potentiometer.read_u16())
+                smooth_rate_potentiometer = (
+                    65536-rate_potentiometer.read_u16())
             else:
-                smooth_rate_potentiometer = smooth_rate_potentiometer*0.8 + 0.2*(65536-rate_potentiometer.read_u16())
+                smooth_rate_potentiometer = smooth_rate_potentiometer * \
+                    0.8 + 0.2*(65536-rate_potentiometer.read_u16())
 
             if smooth_mod_potentiometer == -1:
                 smooth_mod_potentiometer = (65536-mod_potentiometer.read_u16())
             else:
-                smooth_mod_potentiometer = smooth_mod_potentiometer*0.5 + 0.5*(65536-mod_potentiometer.read_u16())
+                smooth_mod_potentiometer = smooth_mod_potentiometer * \
+                    0.5 + 0.5*(65536-mod_potentiometer.read_u16())
 
             if smooth_pitch_potentiometer == -1:
-                smooth_pitch_potentiometer = (65536-pitch_potentiometer.read_u16())
+                smooth_pitch_potentiometer = (
+                    65536-pitch_potentiometer.read_u16())
             else:
-                smooth_pitch_potentiometer = smooth_pitch_potentiometer*0.5 + 0.5*(65536-pitch_potentiometer.read_u16())
-
+                smooth_pitch_potentiometer = smooth_pitch_potentiometer * \
+                    0.5 + 0.5*(65536-pitch_potentiometer.read_u16())
 
             keyboard_config.set_rate_potentiometer(smooth_rate_potentiometer)
             keyboard_config.set_pitch_potentiometer(smooth_pitch_potentiometer)
