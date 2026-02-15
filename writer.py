@@ -1,5 +1,6 @@
 import framebuf
 
+
 class Writer():
     text_row = 0        # attributes common to all Writer instances
     text_col = 0
@@ -26,15 +27,15 @@ class Writer():
         else:
             raise ValueError('Font must be horizontally mapped.')
         if verbose:
-            print('Orientation: {} Reversal: {}'.format('horiz' \
-                if font.hmap() else 'vert', font.reverse()))
+            print('Orientation: {} Reversal: {}'.format('horiz'
+                                                        if font.hmap() else 'vert', font.reverse()))
         self.screenwidth = device.width  # In pixels
         self.screenheight = device.height
-        
-    def text(self, txt, x, y,invert=False):        
-        self.set_textpos(x,y)
-        self.printstring(txt,invert)
-        
+
+    def text(self, txt, x, y, invert=False):
+        self.set_textpos(x, y)
+        self.printstring(txt, invert)
+
     def _newline(self):
         height = self.font.height()
         Writer.text_row += height
@@ -45,9 +46,9 @@ class Writer():
                 self.device.scroll(0, margin)
                 Writer.text_row += margin
 
-    def printstring(self, string,invert=False):
+    def printstring(self, string, invert=False):
         for char in string:
-            self._printchar(char,invert)
+            self._printchar(char, invert)
 
     # Method using blitting. Efficient rendering for monochrome displays.
     # Tested on SSD1306. Invert is for black-on-white rendering.
